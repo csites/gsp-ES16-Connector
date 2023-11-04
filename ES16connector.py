@@ -123,6 +123,7 @@ PORT = settings.get("PORT")
 METRIC = settings.get("METRIC")
 EXTRA_DEBUG = settings.get("EXTRA_DEBUG")
 COM_PORT = settings.get("COM_PORT")
+COM_BAUD = settings.get("COM_BAUD")
 # Audible Read signal.
 AUDIBLE_READY = settings.get("AUDIBLE_READY")
 

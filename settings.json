@@ -1,0 +1,11 @@
+{
+  "HOST": "127.0.0.1", // OpenAPI IP (Leave as is)
+  "PORT": 921, // OpenAPI Port (Leave as is)
+
+ // "DISABLE_PUTTING" : 1,	// uncomment this and set to 1 to prevent Putting server from running
+  "COM_PORT": "COM7"  // Windows serial port of ES16 LM.
+  "COM_BAUD": 115200  // Windows serial port baud rate.  Shouldn't matter.
+  "METRIC": "Yards"   // (Leave as is) - If you want metric instead of imperial, change it in GSPro itself
+  "EXTRA_DEBUG": 1    // Turn on Extra Debug
+  "AUDIBLE_READY": True  // Enable Audio feedback
+}

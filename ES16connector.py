@@ -82,6 +82,62 @@ def create_key_value_variable_lists() -> tuple[dict, dict]:
   
 gs_to_es, es_to_gs = create_key_value_variable_lists()
 
+# Parse ES16 Tour Plus  and ES2020.   Convert everything to a Key Value tuple.
+def parse_input_string(input_string):
+    """
+    Process_input_string takes a serialized data retrieved from an ES16 Lauch monitor.
+    The ES16 data string is read from a wifi USB to serial port and shows up as COM7
+    or a COM port higher than COM3.  This function converts it to a single string 
+    of comma seperated Key Value,  It also filters off the Tour Plus extra line.
+    """
+    # Check for Tour Pluse if the input string begins with 'ESTP' and ignore it
+    if input_string.startswith('ESTP'):
+        return input_string
+
+    # First pass: Extract and remove "CL" followed by 3 alphanumeric letters
+    cl_pattern = r'CL[0-9A-Za-z]{3}'
+    cl_matches = re.findall(cl_pattern, input_string)
+    for cl_match in cl_matches:
+        input_string = input_string.replace(cl_match, '')  # Remove the "CL" entries
+
+    # First pass: Extract and remove "SPA" followed by a sign and a floating point number
+    spa_pattern = r'SPA[+-]?\d+\.\d+'
+    spa_matches = re.findall(spa_pattern, input_string)
+    for spa_match in spa_matches:
+        input_string = input_string.replace(spa_match, '')  # Remove "SPA" entries
+
+    # Second pass: Parse the remaining data
+    pattern = r'([A-Z]+)([0-9\.-]+|[A-Z]{3}\w+)'
+    matches = re.findall(pattern, input_string)
+
+    result = []
+
+    for match in matches:
+        label = match[0]
+        value = match[1]
+
+        # Convert to float
+        try:
+            value = float(value)
+        except ValueError:
+            pass
+
+        result.append(f'{label} {value}')
+
+    # Add "CL" parameters and their values to the result, separating "CLxxx" into "CL xxx"
+    if cl_matches:
+        cl_values = ['CL ' + match[2:] for match in cl_matches]  # Add a space after "CL"
+        result.extend(cl_values)
+
+    # Add "SPA" parameters and their values to the result, separating "SPA+xx.x" into "SPA xx.x"
+    if spa_matches:
+        spa_values = [f'SPA {float(match[3:])}' for match in spa_matches]
+        result.extend(spa_values)
+
+    result = ', '.join(result)
+    return result
+
+
 
 # Print the temporary directory created at runtime, due to --onefile
 # print(os.listdir(sys._MEIPASS))
@@ -188,13 +244,16 @@ def process_gspro(resp):
                 # to Send club change to 'Chip' mode for pure optical
                 # Send date to Club change to ES16.
                 if (gsp_stat.Club != gs_stat.Club_previous):
-                  if (gsp_stat.Club == "LW" and gsp_stat.DistToPin < 40):
+                  if (gsp_stat.Club == "LW" and  < 40):
                     Club_change = "CLUBCHPLOFT000\r"
                   else:
                     Club_change = "CLUB"+gs_to_es[gsp_stat.Club]+"LOFT000\r"
                   ser.send(Club_change)
                   gsp_stat.Club_previous == gsp_stat.Club
-                        
+                  data = read_serial_data(ser)
+                  if (data == "OK\r"):
+                    print_colored_prefix(Color.GREEN,"ES16 Connector ||", f"Change Club: {gs_to_es[gsp_stat.Club]}, Distance to Pin: {gsp_stat.DistToPin}")
+                                            
     return code_200_found
     
 def send_shots():
@@ -209,10 +268,12 @@ def send_shots():
     
         # Check if we recevied any unsollicited messages from GSPRO (e.g. change of club)
         read_ready, _, _ = select.select([send_shots.sock], [], [], 0)
+
         data = bytes(0)
         while read_ready:
             data = data + send_shots.sock.recv(BUFF_SIZE) # Get GSPro data.
             read_ready, _, _ = select.select([send_shots.sock], [], [], 0)
+
         if len(data) > 0 :
             #print(f"rec'd when idle:\n{data}")
             process_gspro(data) # don't need return value at this stage
@@ -220,6 +281,7 @@ def send_shots():
              
         # Check if we have a shot to send.  If not, we can return
         try:
+            # Extract Data from the shot_q.
             message = shot_q.get_nowait()
         except Exception as e:
             # No shot to send
@@ -244,10 +306,10 @@ def send_shots():
         # Ready to send.  Clear the received flag and send it
         gsp_stat.ShotReceived = False
         gsp_stat.Ready = False
+
+        # Send shot data to gspro. 
         send_shots.sock.sendall(json.dumps(message).encode())
-
         print_colored_prefix(Color.GREEN,"MLM2PRO Connector ||", f"Shot {send_shots.shot_count} - Ball: {ball_speed} MPH, Spin: {total_spin} RPM, Axis: {spin_axis}°, HLA: {hla}°, VLA: {vla}°, Club: {club_speed} MPH")
-
         send_shots.shot_count += 1
 
         # Poll politely until there is a message received on the socket
@@ -325,10 +387,22 @@ def main():
         executor = ThreadPoolExecutor(max_workers=3)
 
         print_colored_prefix(Color.GREEN, "GSPro ||", "Connecting to OpenConnect API ({}:{})...".format(HOST, PORT))
- 
+        # Check for the GSPro OpenAPI connector
+        found = False
+        while not found:
+            ser = serial.Serial('COM7', baudrate=115200)
+            # Check if the port is open
+            if ser.isOpen():
+              print_colored_prefix(Color.GREEN, "GSPro ||", "Connecting to ES16 serial port: ({}:{})...".format(COM_PORT, COM_BAUD))
+              found = True
+            else:
+              print_colored_prefix(Color.RED, "GSPro ||", "Serial port did not open. Bluetooth setup? Is the ES16 turned on?")
+              timer.sleep(5)
+          
         last_sound=0            
         while True:
 
+            
             # send any pending shots from the queue.  Will block while awaiting shot responses
             send_shots()
 
@@ -448,3 +522,26 @@ if __name__ == "__main__":
     time.sleep(1)
     plt.ion()  # Turn interactive mode on.
     main()
+import serial
+
+
+
+# Open the COM port at 115200 baud
+ser = serial.Serial('COM3', baudrate=115200, timeout=0.1)
+# Open the COM port at 115200 baud
+ser = serial.Serial('COM3', baudrate=115200)
+
+# Check if there is any data to read
+if ser.inWaiting() > 0:
+    # Read the data from the port
+    data = ser.read(ser.inWaiting())
+    print(data)
+else:
+    print("No data available to read")
+
+try:
+    # Try to read one character from the port
+    data = ser.read(1)
+    print(data)
+except serial.SerialTimeoutException:
+    print("No data available to read within the timeout")

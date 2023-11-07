@@ -137,6 +137,19 @@ def parse_input_string(input_string):
     result = ', '.join(result)
     return result
 
+#Function to convert the string to a key/value data structure.
+def convert_to_message_dict(processed_string):
+    """Converts the output of the 'process_input_string()` function into a message dictionary.
+    Args:
+      processed_string: The output of the 'process_input_string()` function.
+    Returns:
+      A dictionary containing the message data.
+    """
+    message_dict = {}
+    for key_value_pair in processed_string.split(', '):
+      key, value = key_value_pair.split(' ')
+      message_dict[key] = value
+    return message_dict
 
 
 # Print the temporary directory created at runtime, due to --onefile
@@ -276,10 +289,11 @@ def send_shots():
 
         if len(data) > 0 :
             #print(f"rec'd when idle:\n{data}")
-            process_gspro(data) # don't need return value at this stage
-            # OK, if club changes we need to send that that to ES16.
+            process_gspro(data) # don't need return value at this stage But do processes
+            # club changes we need to send that that to ES16.
              
         # Check if we have a shot to send.  If not, we can return
+        
         try:
             # Extract Data from the shot_q.
             message = shot_q.get_nowait()
@@ -378,7 +392,8 @@ def main():
                 print_colored_prefix(Color.RED, "MLM2PRO Connector ||", "GSPconnect.exe is not running. Reset it via GSPRO->Settings->Game->Reset GSPro Connect->Save")
                 time.sleep(1)
         
-        club_speed = ball_speed_last = total_spin_last = spin_axis_last = hla_last = vla_last = club_speed_last = path_angle_last = face_angle_last = None
+        club_speed=ball_speed_last=total_spin_last=spin_axis_last=hla_last=vla_last=club_speed_last=path_angle_last=face_angle_last=angle_of_attack=None
+
         screenshot_attempts = 0
         incomplete_data_displayed = False
         ready_message_displayed = False
@@ -406,75 +421,55 @@ def main():
             # send any pending shots from the queue.  Will block while awaiting shot responses
             send_shots()
 
-            if not gsp_stat.Putter:
+            if ser.inWaiting() > 0:
+              # Read the data from the port
+              data = ser.read(ser.inWaiting())
+              print(data)
+              ES16Data = parse_input_string(data)
+              print(ES16Data)
+              Pdata = convert_to_message_dict(ES16Data)
 
-                         if AUDIBLE_MLM_READY and gsp_stat.RollingOut:
-                            now = time.perf_counter()
-                            if total_dist != '-':        # MLM is done with current shot
-                                gsp_stat.RollingOut = False
-                                if now - last_sound < 2: # as long as the last chime was from the current shot
-                                    chime.success(sync=True, raise_error=True)
-                            else:
-                                if now - last_sound > 1:
-                                    last_sound = now
-                                    chime.info(sync=True, raise_error=True)
-                                
-                else :
-                    if gsp_stat.Ready and (time.perf_counter() - gsp_stat.ReadyTime) > AUTOSHOT_DELAY:
-                        d = gsp_stat.DistToPin
-                        if d > 300:
-                            d = 300
-                        if gsp_stat.Putter:
-                            result = [1.5*d, 0, 0,random.randint(-2,2),0,4] # fake shot data
-                        else:
-                            # general shots
-                            result = [round(d/1.95+20), round(-26.6*d+10700), random.randint(-3,3),random.randint(-2,2),round(-0.1*d+41),round((d/1.85+20)/1.5)] # fake shot data
-                            # driver robot
-                            #result = [140+random.randint(-3,3), 2500+100*random.randint(-6,6), 0, 0, 12+random.randint(-3,3), 99+random.randint(-3,3)]
-                        ball_speed, total_spin, spin_axis, hla, vla, club_speed = map(str, result)
-
-                path_angle = '-'
-                face_angle = '-'
-            else: # putter is in use
-   
-                message = {
-                    "DeviceID": "ES16 Tour Plus",
-                    "Units": METRIC,
-                    "ShotNumber": 999,
-                    "APIversion": "1",
-                    "BallData": {
-                        "Speed": ball_speed,
-                        "SpinAxis": spin_axis,
-                        "TotalSpin": total_spin,
-                        "BackSpin": round(total_spin * math.cos(math.radians(spin_axis))),
-                        "SideSpin": round(total_spin * math.sin(math.radians(spin_axis))),
-                        "HLA": hla,
-                        "VLA": vla
-                    },
-                    "ClubData": {
-                        "Speed": club_speed,
-                        "Path": path_angle,
-                        "FaceToTarget": face_angle,
-                    },
-                    "ShotDataOptions": {
-                        "ContainsBallData": True,
-                        "ContainsClubData": True,
-                        "LaunchMonitorIsReady": True,
-                        "LaunchMonitorBallDetected": True,
-                        "IsHeartBeat": False
-                    }
+            message = {
+                "DeviceID": "ES16 Tour Plus",
+                "Units": METRIC,
+                "ShotNumber": 999,
+                "APIversion": "1",
+                "BallData": {
+                    "Speed": Pdata["BS"],
+                    "SpinAxis": Pdata["SPA"],
+                    "TotalSpin": Pdata["SP"],
+                    "BackSpin": round(Pdata["SP"] * math.cos(math.radians(Pdata["SPA"]))),
+                    "SideSpin": round(Pdata["SP"] * math.sin(math.radians(Pdata["SPA"]))),
+                    "HLA": Pdata["DIR"],
+                    "VLA": Pdata["LA"]
+                },
+                "ClubData": {
+                    "Speed": Pdata["BS"],
+                    "AngleOfAttack": Pfata["AA"]
+                    "FaceToTarget": Pdata["CFAC"],
+                    "Path": Pdata["CPTH"],
+                    "Loft": Pdata["SPL"]
+                },
+                "ShotDataOptions": {
+                    "ContainsBallData": True,
+                    "ContainsClubData": True,
+                    "LaunchMonitorIsReady": True,
+                    "LaunchMonitorBallDetected": True,
+                    "IsHeartBeat": False
                 }
-                # Put this shot in the queue
-                shot_q.put(message)
-                send_shots()
-                ball_speed_last = ball_speed
-                total_spin_last = total_spin
-                spin_axis_last = spin_axis
-                hla_last = hla
-                vla_last = vla
-                club_speed_last = club_speed
-                path_angle_last = path_angle
-                face_angle_last = face_angle
+            }
+            # Put this shot in the queue
+            shot_q.put(message)
+            send_shots()
+            ball_speed_last = ball_speed
+            total_spin_last = total_spin
+            spin_axis_last = spin_axis
+            hla_last = hla
+            vla_last = vla
+            club_speed_last = club_speed
+            path_angle_last = path_angle
+            face_angle_last = face_angle
+            angle_of_attack_last = angle_of_attack           
             time.sleep(.5)
 
     except Exception as e:

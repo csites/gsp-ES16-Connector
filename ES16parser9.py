@@ -43,6 +43,24 @@ def process_input_string(input_string):
 
     return mydict
 
+# Read line up to '\r' and return the data.
+def read_serial_data(ser):
+    buffer = []
+
+    while True:
+        if ser.inWaiting():
+            c = b""
+            while True:
+                val = ser.read(1)
+                if val == b"\r":
+                    break
+                else:
+                    c += val
+            buffer.append(c.decode('utf-8'))  # Decode the bytes to a string
+            print(buffer)
+            
+    return buffer
+
 
 
 # Example usage:
@@ -90,20 +108,14 @@ except:
   print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE No COM port ||","Data Not recieved")
   
 # Check if there is any data to read
-while True:
-  if (ser.inWaiting() > 0):
-      # Read the data from the port
-      data = ser.read(ser.inWaiting())
-      parsed_data = process_input_string(data)
-      if (parsed_data == Nono):
-        continue
-      print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
-      print(parsed_data)
-  else:
-      print("No data available to read")
-
+loop=True
+while loop:
+  while (ser.inWaiting() <=0):
       # Check if a key has been pressed
       key = check_for_key()
+      if (key== "q"):
+        loop = False
+        break
       if key:
         # Get the corresponding string from the dictionary
         string = key_mapping[key]
@@ -113,10 +125,21 @@ while True:
         msg = s.encode('ascii')
         print_color_prefix(Color.RED, "|| ES16 Change Clubs ||", msg)
         ser.write(msg)
-        
+
+        # After club change look for OK.        
         while (ser.inWaiting() <= 0):  
           timer.sleep(0.1)
               # Read the data from the port
-        data = ser.read(ser.inWaiting())
+        data = read_serial_data(ser)
         print(data)
+
+    # Read the data from the port
+    data = read_serial_data(ser)
+    parsed_data = process_input_string(data)
+    if (parsed_data == None):
+      print("No data available to read when we should have some.")
+      continue
+    print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
+    print(parsed_data)
+
         

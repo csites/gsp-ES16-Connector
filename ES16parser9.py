@@ -109,7 +109,7 @@ except:
   
 # Check if there is any data to read
 loop=True
-while loop:
+while (loop == True):
   while (ser.inWaiting() <=0):
       # Check if a key has been pressed
       key = check_for_key()
@@ -133,13 +133,13 @@ while loop:
         data = read_serial_data(ser)
         print(data)
 
-    # Read the data from the port
-    data = read_serial_data(ser)
-    parsed_data = process_input_string(data)
-    if (parsed_data == None):
-      print("No data available to read when we should have some.")
-      continue
-    print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
-    print(parsed_data)
+  # Read the data from the port
+  data = read_serial_data(ser)
+  parsed_data = process_input_string(data)
+  if (parsed_data == None):
+    print("No data available to read when we should have some.")
+    continue
+  print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
+  print(parsed_data)
 
         

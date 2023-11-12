@@ -1,6 +1,6 @@
 import re
 import keyboard
-import timer
+import time
 import serial
 
 class Color:
@@ -26,7 +26,7 @@ def process_input_string(input_string):
     of comma seperated Key Value,  It also filters off the Tour Plus extra line.
     """
     # Check for Tour Pluse if the input string begins with 'ESTP' and ignore it
-    if input_string.startswith('ESTP'):
+    if input_string[:4] == "ESTP":
         return None
    
     pattern = r"([A-Z]{2,4})([+-]?\d*\.?\d+|[+-]?\d+\.\d+[^\d])"
@@ -107,12 +107,13 @@ try:
 except:
   print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE No COM port ||","Data Not recieved")
 
-ser.timeout(0.5) # One tenth second timeout.
+  ser.timeout(0) # One tenth second timeout.
   
 # Check if there is any data to read
 loop=True
 while (loop == True):
-  while (ser.inWaiting() <=0):
+  key = ""
+  while (ser.inWaiting() == 0):
       # Check if a key has been pressed
       key = check_for_key()
       if (key== "q"):
@@ -128,24 +129,26 @@ while (loop == True):
         ser.write(msg)
 
         # After club change look for OK.        
-        while (ser.inWaiting() <= 0):  
-          timer.sleep(0.1)
-              # Read the data from the port
-        try: 
-          data = ser.read(2)
-          print("Expect: "+data)
-        except ser.SerialTimeoutException:
-          pass
+        while (ser.inWaiting() == 0):  
+          time.sleep(0.1)
+
+        #Read the data from the port
+        data = ser.read(2)
+        string_data = data.decode('utf-8')
+        print("Expect: "+string_data)
+        break
           
   # Read the data from the port
   try: 
     data = ser.read(168)
-  except ser.SerialTimeoutException:
+    string_data = data.decode('utf-8')
+  except:
+    ser.flush()
     continue
-  print(data)
-  parsed_data = process_input_string(data)
-  if (parsed_data == None):
-    print("No data available to read when we should have some.")
+  print(string_data)
+  parsed_data = process_input_string(string_data)
+  if (len(parsed_data) == 3):
+    print("ESTP data: ",parsed_data)
     continue
   print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
   print(parsed_data)

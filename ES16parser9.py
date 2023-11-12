@@ -1,5 +1,5 @@
 import re
-import keyboard
+import cv2
 import time
 import serial
 
@@ -15,9 +15,12 @@ def print_color_prefix(color, prefix, message):
     print(f"{color}{prefix}{Color.RESET}", message)
 
 def check_for_key():
-    key = keyboard.read_key()
-    return key
-
+    # 100 millisecond timeout.
+    key = cv2.waitKey(100) & 0xFF
+    if key < 0:
+      key = 0
+    return ord(key)
+      
 def process_input_string(input_string):
     """
     Process_input_string takes a serialized data retrieved from an ES16 Lauch monitor.
@@ -106,8 +109,7 @@ try:
   ser = serial.Serial('COM7', baudrate=115200)
 except:
   print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE No COM port ||","Data Not recieved")
-
-  ser.timeout(0) # One tenth second timeout.
+# ser.timeout=0 # One tenth second timeout.
   
 # Check if there is any data to read
 loop=True
@@ -116,10 +118,12 @@ while (loop == True):
   while (ser.inWaiting() == 0):
       # Check if a key has been pressed
       key = check_for_key()
+      if (key == ord(0) or key == ord(255)):
+        break
       if (key== "q"):
         loop = False
         break
-      if key:
+      if chr(key) in key_mapping:
         # Get the corresponding string from the dictionary
         string = key_mapping[key]
         # Construct the message string
@@ -136,22 +140,53 @@ while (loop == True):
         data = ser.read(2)
         string_data = data.decode('utf-8')
         print("Expect: "+string_data)
+        ser.flush()
         break
-          
+      else:
+        print("You pressed key: ",key)
+                  
   # Read the data from the port
-  try: 
-    data = ser.read(168)
-    string_data = data.decode('utf-8')
-  except:
+  string_data = string_data2 = ""
+  
+  if (ser.inWaiting() > 0): 
+    ser.timeout = 0.3
+    try: 
+      data = ser.read(168)
+      ser.timeout=0
+      string_data = data.decode('utf-8')
+      print("string_data: ",string_data)
+    except serial.SerialTimeoutException:
+      ser.timeout=0
+      ser.flush()
+      continue
+    # The ESTP send 1 line of radar only data (BS, and CS) on mis-read (ie: fat shots). 
+    # It sends a 2nd line of radar and optical or none at all on a misread.  Maybe have 
+    # our program say "Misread swing again."
+    if (ser.inWaiting() > 0):
+      ser.timeout = 0.3
+      try: 
+        data2 = ser.read(168)
+        ser.timeout=0
+        string_data2 = data2.decode('utf-8')
+        print("string data2: ",string_data2)
+      except serial.SerialTimeoutException:
+        ser.timeout=0
+        ser.flush()
+        continue
+  ser.timeout = 0
+  
+  parsed_data = process_input_string(string_data)
+  if (parsed_data == None):
+    print("ESTP data: ",string_data[:29])
     ser.flush()
     continue
-  print(string_data)
-  parsed_data = process_input_string(string_data)
   if (len(parsed_data) == 3):
     print("ESTP data: ",parsed_data)
+    ser.flush()
     continue
+  parsed_data2 = process_input_string(string_data2)
   print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
-  print(parsed_data)
+  print(parsed_data2)
 
 ser.close()
 print("Quit!")

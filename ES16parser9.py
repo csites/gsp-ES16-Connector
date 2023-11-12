@@ -106,6 +106,8 @@ try:
   ser = serial.Serial('COM7', baudrate=115200)
 except:
   print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE No COM port ||","Data Not recieved")
+
+ser.timeout(0.5) # One tenth second timeout.
   
 # Check if there is any data to read
 loop=True
@@ -122,7 +124,6 @@ while (loop == True):
         # Construct the message string
         club_change_string = "CLUB" + string + "LOFT000\r"
         msg = club_change_string.encode('ascii') 
-        msg = s.encode('ascii')
         print_color_prefix(Color.RED, "|| ES16 Change Clubs ||", msg)
         ser.write(msg)
 
@@ -130,11 +131,18 @@ while (loop == True):
         while (ser.inWaiting() <= 0):  
           timer.sleep(0.1)
               # Read the data from the port
-        data = read_serial_data(ser)
-        print(data)
-
+        try: 
+          data = ser.read(2)
+          print("Expect: "+data)
+        except ser.SerialTimeoutException:
+          pass
+          
   # Read the data from the port
-  data = read_serial_data(ser)
+  try: 
+    data = ser.read(168)
+  except ser.SerialTimeoutException:
+    continue
+  print(data)
   parsed_data = process_input_string(data)
   if (parsed_data == None):
     print("No data available to read when we should have some.")
@@ -142,4 +150,6 @@ while (loop == True):
   print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
   print(parsed_data)
 
+ser.close()
+print("Quit!")
         

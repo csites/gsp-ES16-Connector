@@ -120,7 +120,7 @@ while (loop == True):
       key = cv2.waitKey(100) & 0xFF
       if (key == 0) or (key == 255):
         break
-      if (key==ord("q"):
+      if (key==ord("q")):
         loop = False
         break
       if str(chr(key)) in key_mapping:

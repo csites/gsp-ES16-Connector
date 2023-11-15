@@ -185,9 +185,9 @@ while (loop == True):
     ser.flush()
     continue
   parsed_data2 = process_input_string(string_data2)
-  print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
-  print(parsed_data2)
+  if (len(parsed_data2) > 0):
+      print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
+      print(parsed_data2)
 
 ser.close()
-print("Quit!")
-        
+print("Quit!")  

@@ -117,15 +117,16 @@ while (loop == True):
   key = ""
   while (ser.inWaiting() == 0):
       # Check if a key has been pressed
-      key = check_for_key()
-      if (key == chr(0) or key == chr(255)):
+      key = cv2.waitKey(100) & 0xFF
+      if (key == 0) or (key == 255):
         break
-      if (key== 'q'):
+      if (key==ord("q"):
         loop = False
         break
-      if str(key) in key_mapping:
+      if str(chr(key)) in key_mapping:
+        print(str(chr(key)))
         # Get the corresponding string from the dictionary
-        string = key_mapping[str(key)]
+        string = key_mapping[str(chr(key))]
         # Construct the message string
         club_change_string = "CLUB" + string + "LOFT000\r"
         msg = club_change_string.encode('ascii') 

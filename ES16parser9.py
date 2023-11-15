@@ -118,7 +118,7 @@ while (loop == True):
   while (ser.inWaiting() == 0):
       # Check if a key has been pressed
       key = cv2.waitKey(100) & 0xFF
-      if (key == 0) or (key == 255):
+      if (key <= 0) or (key == 255):
         break
       if (key==ord("q")):
         loop = False

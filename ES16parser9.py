@@ -123,9 +123,9 @@ while (loop == True):
       if (key== 'q'):
         loop = False
         break
-      if key in key_mapping:
+      if str(key) in key_mapping:
         # Get the corresponding string from the dictionary
-        string = key_mapping[key]
+        string = key_mapping[str(key)]
         # Construct the message string
         club_change_string = "CLUB" + string + "LOFT000\r"
         msg = club_change_string.encode('ascii') 

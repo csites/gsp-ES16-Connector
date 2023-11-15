@@ -118,11 +118,12 @@ while (loop == True):
   while (ser.inWaiting() == 0):
       # Check if a key has been pressed
       key = cv2.waitKey(100) & 0xFF
-      if (key <= 0) or (key == 255):
+      if (key == 0) or (key == 255):
         break
       if (key==ord("q")):
         loop = False
         break
+      print(str(chr(key)))
       if str(chr(key)) in key_mapping:
         print(str(chr(key)))
         # Get the corresponding string from the dictionary

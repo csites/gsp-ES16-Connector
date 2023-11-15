@@ -19,7 +19,7 @@ def check_for_key():
     key = cv2.waitKey(100) & 0xFF
     if key < 0:
       key = 0
-    return ord(key)
+    return chr(key)
       
 def process_input_string(input_string):
     """
@@ -118,12 +118,12 @@ while (loop == True):
   while (ser.inWaiting() == 0):
       # Check if a key has been pressed
       key = check_for_key()
-      if (key == ord(0) or key == ord(255)):
+      if (key == chr(0) or key == chr(255)):
         break
-      if (key== "q"):
+      if (key== 'q'):
         loop = False
         break
-      if chr(key) in key_mapping:
+      if key in key_mapping:
         # Get the corresponding string from the dictionary
         string = key_mapping[key]
         # Construct the message string

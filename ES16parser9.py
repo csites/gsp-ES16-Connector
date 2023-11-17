@@ -1,7 +1,9 @@
 import re
-import cv2
+import msvcrt
 import time
 import serial
+import pyttsx3
+import sys
 
 class Color:
     RESET = '\033[0m'
@@ -13,13 +15,6 @@ class Color:
 
 def print_color_prefix(color, prefix, message):
     print(f"{color}{prefix}{Color.RESET}", message)
-
-def check_for_key():
-    # 100 millisecond timeout.
-    key = cv2.waitKey(100) & 0xFF
-    if key < 0:
-      key = 0
-    return chr(key)
       
 def process_input_string(input_string):
     """
@@ -46,26 +41,6 @@ def process_input_string(input_string):
 
     return mydict
 
-# Read line up to '\r' and return the data.
-def read_serial_data(ser):
-    buffer = []
-
-    while True:
-        if ser.inWaiting():
-            c = b""
-            while True:
-                val = ser.read(1)
-                if val == b"\r":
-                    break
-                else:
-                    c += val
-            buffer.append(c.decode('utf-8'))  # Decode the bytes to a string
-            print(buffer)
-            
-    return buffer
-
-
-
 # Example usage:
 input_string = "ESTPPtr001CS091.08BS108.50000000000123456"  # Replace this with your input string
 processed_string = process_input_string(input_string)
@@ -82,34 +57,37 @@ print(parsed_data['CPTH'])
 print(parsed_data['CFAC'])
 print("end")
 
-key_mapping = {
-    "`": "Drv",
-    "1": "3Wd",
-    "2": "5Wd",
-    "3": "4Hy",
-    "4": "4Ir",
-    "5": "5Ir",
-    "6": "6Ir",
-    "7": "7Ir",
-    "8": "8Ir",
-    "9": "9Ir",
-    "0": "Ptw",
-    "-": "Gpw",
-    "=": "Swd",
-    "\\": "Chp",
-    "p": "Ptt",
+club_mapping = {
+    "`": ("Driver", "Drv"),
+    "1": ("3 Wood", "3Wd"),
+    "2": ("5 Wood", "5Wd"),
+    "3": ("4 Hybrid", "4Hy"),
+    "4": ("4 Iron", "4Ir"),
+    "5": ("5 Iron", "5Ir"),
+    "6": ("6 Iron", "6Ir"),
+    "7": ("7 Iron", "7Ir"),
+    "8": ("8 Iron", "8Ir"),
+    "9": ("9 Iron", "9Ir"),
+    "0": ("Pitch Wedge", "Ptw"),
+    "-": ("Gap Wedge", "Gpw"),
+    "=": ("Sand Wedge", "Swd"),
+    "\\": ("Lob Wedge Chip", "Chp"),
+    "p": ("Putter", "Ptt"),
 }
 
 print_color_prefix(Color.GREEN,"||  ES16 SERIAL LINE READ/PARSE  ||","Opening serial port COM7")
-
-print_color_prefix(Color.GREEN,"||  Press keys: `1234567890-=\p to change clubs.  ||","Opening serial port COM7")
+print_color_prefix(Color.GREEN,"||  Press a key to change clubs  ||","` 1 2 3 4 5 6 7 8 9 0 - = \ p")
 
  # Open the COM port at 115200 baud
 try: 
   ser = serial.Serial('COM7', baudrate=115200)
 except:
-  print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE No COM port ||","Data Not recieved")
-# ser.timeout=0 # One tenth second timeout.
+  print_color_prefix(Color.RED, "||  ES16 SERIAL LINE No COM port ||","Data Not recieved. Exiting.")
+  sys.exit(1)
+
+voice=pyttsx3.init() # Initialize text to speech
+voice.setProperty('rate',265)
+voice.setProperty('voice', 'Microsoft Mary')
   
 # Check if there is any data to read
 loop=True
@@ -117,35 +95,36 @@ while (loop == True):
   key = ""
   while (ser.inWaiting() == 0):
       # Check if a key has been pressed
-      key = cv2.waitKey(100) & 0xFF
-      if (key == 0) or (key == 255):
-        break
-      if (key==ord("q")):
-        loop = False
-        break
-      print(str(chr(key)))
-      if str(chr(key)) in key_mapping:
-        print(str(chr(key)))
-        # Get the corresponding string from the dictionary
-        string = key_mapping[str(chr(key))]
-        # Construct the message string
-        club_change_string = "CLUB" + string + "LOFT000\r"
-        msg = club_change_string.encode('ascii') 
-        print_color_prefix(Color.RED, "|| ES16 Change Clubs ||", msg)
-        ser.write(msg)
+      if msvcrt.kbhit():
+        key = msvcrt.getch()
+        if (ord(key) == ord('q')):
+          loop = False
+          break
+        skey = str(chr(ord(key)))          
+        if skey in club_mapping:
 
-        # After club change look for OK.        
-        while (ser.inWaiting() == 0):  
-          time.sleep(0.1)
-
-        #Read the data from the port
-        data = ser.read(2)
-        string_data = data.decode('utf-8')
-        print("Expect: "+string_data)
-        ser.flush()
-        break
-      else:
-        print("You pressed key: ",key)
+          voice.say("Club Selected,"+club_mapping[skey][0])
+          voice.runAndWait()
+          # Get the corresponding string from the dictionary
+          string = club_mapping[skey][1]
+          # Construct the message string
+          club_change_string = "CLUB" + string + "LOFT000\r"
+          msg = club_change_string.encode('ascii') 
+          print_color_prefix(Color.RED, "|| ES16 Change Clubs ||", msg)
+          ser.write(msg)
+  
+          # After club change look for OK.        
+          while (ser.inWaiting() == 0):  
+            time.sleep(0.1)
+  
+          #Read the data from the port
+          data = ser.read(2)
+          string_data = data.decode('utf-8')
+          print("Expect: "+string_data)
+          ser.flush()
+          break
+        else:
+          print("You pressed key: ",skey)
                   
   # Read the data from the port
   string_data = string_data2 = ""
@@ -187,9 +166,17 @@ while (loop == True):
     ser.flush()
     continue
   parsed_data2 = process_input_string(string_data2)
-  if (len(parsed_data2) > 0):
-      print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
-      print(parsed_data2)
-
+  if (parsed_data2 != None):
+    print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
+    print(parsed_data2)
+    voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
+    voice.runAndWait()
+  else:
+    voice.say("Misread shot")
+    voice.runAndWait()
+    
+voice.stop()    
 ser.close()
-print("Quit!")  
+print("Quit!")
+sys.exit(0)
+        

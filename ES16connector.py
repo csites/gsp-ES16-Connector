@@ -40,7 +40,7 @@ club_mapping = {
     "`": ("Driver", "Drv","DR"),
     "1": ("3 Wood", "3Wd","W3"),
     "2": ("5 Wood", "5Wd","W5"),
-    "3": ("4 Hybrid", "4Hy"."H4"),
+    "3": ("4 Hybrid", "4Hy","H4"),
     "4": ("4 Iron", "4Ir","I4"),
     "5": ("5 Iron", "5Ir","I5"),
     "6": ("6 Iron", "6Ir","I6"),

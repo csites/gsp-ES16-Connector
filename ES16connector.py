@@ -1,10 +1,10 @@
-from concurrent.futures import ThreadPoolExecutor
+# from concurrent.futures import ThreadPoolExecutor
 import time
 import sys
 import os
 import json
 import ctypes
-from socket_connection import create_socket_connection
+# from socket_connection import create_socket_connection
 from PIL import Image
 from datetime import datetime
 from matplotlib import pyplot as plt

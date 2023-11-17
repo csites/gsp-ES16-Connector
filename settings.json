@@ -7,5 +7,5 @@
   "COM_BAUD": 115200, // Windows serial port baud rate.  Shouldn't matter.
   "METRIC": "Yards",  // (Leave as is) - If you want metric instead of imperial, change it in GSPro itself
   "EXTRA_DEBUG": 1,    // Turn on Extra Debug
-  "AUDIBLE_READY": True,  // Enable Audio feedback
+  "AUDIBLE_READY": True  // Enable Audio feedback
 }

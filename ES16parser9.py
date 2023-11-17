@@ -168,9 +168,9 @@ while (loop == True):
     ser.flush()
     continue
   parsed_data2 = process_input_string(string_data2)
-  if (len(parsed_data2) != 0):
+  if (parsed_data2 != None):
     print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
-    print(parsed_data2)
+    print("Parsed data2: ",parsed_data2)
     voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
     voice.runAndWait()
   else:

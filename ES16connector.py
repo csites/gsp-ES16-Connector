@@ -49,7 +49,7 @@ club_mapping = {
     "9": ("9 Iron", "9Ir","I9"),
     "0": ("Pitch Wedge", "Ptw","PW"),
     "-": ("Gap Wedge", "Gpw","GW"),
-    "=": ("Sand Wedge", "Swd","SW:),
+    "=": ("Sand Wedge", "Swd","SW"),
     "\\": ("Lob Wedge Chip", "Chp","LW"),
     "p": ("Putter", "Ptt","PT"),
 }

@@ -155,7 +155,9 @@ while (loop == True):
         ser.flush()
         continue
   ser.timeout = 0
-  
+  if (len(string_data) == 0 and len(string_data2) == 0):
+      continue
+        
   parsed_data = process_input_string(string_data)
   if (parsed_data == None):
     print("ESTP data: ",string_data[:29])
@@ -166,7 +168,7 @@ while (loop == True):
     ser.flush()
     continue
   parsed_data2 = process_input_string(string_data2)
-  if (parsed_data2 != None):
+  if (len(parsed_data2) != 0):
     print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
     print(parsed_data2)
     voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])

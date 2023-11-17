@@ -479,7 +479,7 @@ def main():
               },
               "ClubData": {
                   "Speed": Pdata["BS"],
-                  "AngleOfAttack": Pdata["AA"]
+                  "AngleOfAttack": Pdata["AA"],
                   "FaceToTarget": Pdata["CFAC"],
                   "Path": Pdata["CPTH"],
                   "Loft": Pdata["SPL"]

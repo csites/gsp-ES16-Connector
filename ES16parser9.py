@@ -161,17 +161,18 @@ while (loop == True):
   parsed_data = process_input_string(string_data)
   if (parsed_data == None):
     print("ESTP data: ",string_data[:29])
-    ser.flush()
     voice.say("Misread shot")
-    voice.runAndWait()    
+    voice.runAndWait()     
+    ser.flush()
     continue
   if (len(parsed_data) == 3):
     print("ESTP data: ",parsed_data)
     ser.flush()
-    
     continue
+      
   if (len(string_data2) == 0):
-      string_data2 = string_data
+    string_data2 = string_data
+      
   parsed_data2 = process_input_string(string_data2)
   if (parsed_data2 != None):
     print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")

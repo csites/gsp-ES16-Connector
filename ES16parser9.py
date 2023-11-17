@@ -161,8 +161,6 @@ while (loop == True):
   parsed_data = process_input_string(string_data)
   if (parsed_data == None):
     print("ESTP data: ",string_data[:29])
-    voice.say("Misread shot")
-    voice.runAndWait()     
     ser.flush()
     continue
   if (len(parsed_data) == 3):

@@ -128,7 +128,8 @@ while (loop == True):
                   
   # Read the data from the port
   string_data = string_data2 = ""
-  
+  if (ser.inWaiting() == 3):
+      print(ser.read(3))
   if (ser.inWaiting() > 0): 
     ser.timeout = 0.3
     try: 

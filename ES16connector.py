@@ -7,7 +7,6 @@ import ctypes
 from socket_connection import create_socket_connection
 from PIL import Image
 from datetime import datetime
-import cv2
 from matplotlib import pyplot as plt
 import platform
 import random
@@ -21,7 +20,9 @@ import pywinauto
 import psutil
 from pathlib import Path
 import chime
-
+import msvcrt
+import pyttsx3
+import sys
 import socket
 import serial
 
@@ -33,29 +34,36 @@ def create_socket_connection(host, port):
     sock.settimeout(5)
     return sock
 
-# To Read the ES16 Tour Plus LM.
+  ES_gsp_Clubs="Drv DR, 3Wd W2, 3Wd W3, 4Wd W4, 5Wd W5, 7Wd W7, 7Wd W6, 2Hy H2, 3Hy H3, 4Hy H4, 5Hy H7, 5Hy H6, 5Hy H5, 2Ir I2, 2Ir I1, 3Ir I3, 4Ir I4, 5Ir I5, 6Ir I6,  7Ir I7, 8Ir I8, 9Ir I9, Ptw PW, Gpw GW, Sdw SW, Ldw LW, Chp LW, Ptt PT"
 
-def read_serial_data(ser):
-    buffer = []
+club_mapping = {
+    "`": ("Driver", "Drv","DR"),
+    "1": ("3 Wood", "3Wd","W3"),
+    "2": ("5 Wood", "5Wd","W5"),
+    "3": ("4 Hybrid", "4Hy"."H4"),
+    "4": ("4 Iron", "4Ir","I4"),
+    "5": ("5 Iron", "5Ir","I5"),
+    "6": ("6 Iron", "6Ir","I6"),
+    "7": ("7 Iron", "7Ir","I7"),
+    "8": ("8 Iron", "8Ir","I8"),
+    "9": ("9 Iron", "9Ir","I9"),
+    "0": ("Pitch Wedge", "Ptw","PW"),
+    "-": ("Gap Wedge", "Gpw","GW"),
+    "=": ("Sand Wedge", "Swd","SW:),
+    "\\": ("Lob Wedge Chip", "Chp","LW"),
+    "p": ("Putter", "Ptt","PT"),
+}
 
-    while True:
-        if ser.inWaiting():
-            c = b""
-            while True:
-                val = ser.read(1)
-                if val == b"\r":
-                    break
-                else:
-                    c += val
-            buffer.append(c.decode('utf-8'))  # Decode the bytes to a string
+class Color:
+    RESET = '\033[0m'
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    CYAN = '\033[96m'
+    BLUE = '\033[94m'
 
-        if len("".join(buffer)) >= 168:
-            return buffer
-
-# Send Club Change to ES16
-def send_serial_club(port):
-
-  return
+def print_colored_prefix(color, prefix, message):
+    print(f"{color}{prefix}{Color.RESET}", message)
 
 # Create the key/value variable lists for club conversion.
 def create_key_value_variable_lists() -> tuple[dict, dict]:
@@ -83,7 +91,7 @@ def create_key_value_variable_lists() -> tuple[dict, dict]:
 gs_to_es, es_to_gs = create_key_value_variable_lists()
 
 # Parse ES16 Tour Plus  and ES2020.   Convert everything to a Key Value tuple.
-def parse_input_string(input_string):
+def process_input_string(input_string):
     """
     Process_input_string takes a serialized data retrieved from an ES16 Lauch monitor.
     The ES16 data string is read from a wifi USB to serial port and shows up as COM7
@@ -91,51 +99,22 @@ def parse_input_string(input_string):
     of comma seperated Key Value,  It also filters off the Tour Plus extra line.
     """
     # Check for Tour Pluse if the input string begins with 'ESTP' and ignore it
-    if input_string.startswith('ESTP'):
-        return input_string
-
-    # First pass: Extract and remove "CL" followed by 3 alphanumeric letters
-    cl_pattern = r'CL[0-9A-Za-z]{3}'
-    cl_matches = re.findall(cl_pattern, input_string)
-    for cl_match in cl_matches:
-        input_string = input_string.replace(cl_match, '')  # Remove the "CL" entries
-
-    # First pass: Extract and remove "SPA" followed by a sign and a floating point number
-    spa_pattern = r'SPA[+-]?\d+\.\d+'
-    spa_matches = re.findall(spa_pattern, input_string)
-    for spa_match in spa_matches:
-        input_string = input_string.replace(spa_match, '')  # Remove "SPA" entries
-
-    # Second pass: Parse the remaining data
-    pattern = r'([A-Z]+)([0-9\.-]+|[A-Z]{3}\w+)'
+    if input_string[:4] == "ESTP":
+        return None
+   
+    pattern = r"([A-Z]{2,4})([+-]?\d*\.?\d+|[+-]?\d+\.\d+[^\d])"
     matches = re.findall(pattern, input_string)
+    mydict = dict(matches)
+    
+    # Extract the three alphanumeric characters following the "CL" key
+    club_regex = r"CL([a-zA-Z0-9]{3})"
+    club_match = re.search(club_regex, input_string)
 
-    result = []
+    # Add the extracted value to the dictionary if found
+    if club_match:
+        mydict['CL'] = club_match.group(1)
 
-    for match in matches:
-        label = match[0]
-        value = match[1]
-
-        # Convert to float
-        try:
-            value = float(value)
-        except ValueError:
-            pass
-
-        result.append(f'{label} {value}')
-
-    # Add "CL" parameters and their values to the result, separating "CLxxx" into "CL xxx"
-    if cl_matches:
-        cl_values = ['CL ' + match[2:] for match in cl_matches]  # Add a space after "CL"
-        result.extend(cl_values)
-
-    # Add "SPA" parameters and their values to the result, separating "SPA+xx.x" into "SPA xx.x"
-    if spa_matches:
-        spa_values = [f'SPA {float(match[3:])}' for match in spa_matches]
-        result.extend(spa_values)
-
-    result = ', '.join(result)
-    return result
+    return mydict
 
 #Function to convert the string to a key/value data structure.
 def convert_to_message_dict(processed_string):
@@ -208,17 +187,6 @@ if AUDIBLE_READY is None:
 test_mode = TestModes.none
 #test_mode = TestModes.auto_shot
 
-class Color:
-    RESET = '\033[0m'
-    RED = '\033[91m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    CYAN = '\033[96m'
-    BLUE = '\033[94m'
-
-def print_colored_prefix(color, prefix, message):
-    print(f"{color}{prefix}{Color.RESET}", message)
-
 class c_GSPRO_Status:
     Ready = True
     ShotReceived = False
@@ -242,7 +210,7 @@ def process_gspro(resp):
     jsons = re.split('(\{.*?\})(?= *\{)', resp.decode("utf-8"))
     for this_json in jsons:
         if len(this_json) > 0 :
-            #print(this_json)
+            print(this_json)
             msg = json.loads(this_json)
             if msg['Code'] == 200 :
                 gsp_stat.ShotReceived = True
@@ -253,6 +221,7 @@ def process_gspro(resp):
                 gsp_stat.RollingOut = True
                 gsp_stat.DistToPin = msg['Player']['DistanceToTarget']
                 gsp_stat.Club = msg['Player']['Club']
+
                 # We beed to send the CLub selected to ES16.  But if its a wedge, we need to look at Distance to Target.  If That is < 30 yards, we want to 
                 # to Send club change to 'Chip' mode for pure optical
                 # Send date to Club change to ES16.
@@ -323,7 +292,7 @@ def send_shots():
 
         # Send shot data to gspro. 
         send_shots.sock.sendall(json.dumps(message).encode())
-        print_colored_prefix(Color.GREEN,"MLM2PRO Connector ||", f"Shot {send_shots.shot_count} - Ball: {ball_speed} MPH, Spin: {total_spin} RPM, Axis: {spin_axis}°, HLA: {hla}°, VLA: {vla}°, Club: {club_speed} MPH")
+        print_colored_prefix(Color.GREEN,"ES16 Connector ||", f"Shot {send_shots.shot_count} - Ball: {ball_speed} MPH, Spin: {total_spin} RPM, Axis: {spin_axis}°, HLA: {hla}°, VLA: {vla}°, Club: {club_speed} MPH")
         send_shots.shot_count += 1
 
         # Poll politely until there is a message received on the socket
@@ -342,7 +311,7 @@ def send_shots():
             # we have a complete message now, but it may not have our ack yet
             if process_gspro(data):
                 # we got acknowledgement
-                print_colored_prefix(Color.BLUE, "MLM2PRO Connector ||", "Shot data has been sent successfully...")
+                print_colored_prefix(Color.BLUE, "ES16 Connector ||", "Shot data has been sent successfully...")
                 send_shots.gspro_connection_notified = False;
                 send_shots.create_socket = False
                 got_ack = True
@@ -355,7 +324,7 @@ def send_shots():
     except Exception as e:
         if EXTRA_DEBUG:
             print(f"send_shots: {e}")
-        print_colored_prefix(Color.RED, "MLM2PRO Connector ||", "No response from GSPRO. Retrying")
+        print_colored_prefix(Color.RED, "ES16 Connector ||", "No response from GSPRO. Retrying")
         if not send_shots.gspro_connection_notified:
             chime.error()
             send_shots.gspro_connection_notified = True;
@@ -374,106 +343,177 @@ gspro_window = None
 
 
 def main():
-    global api
-    global gspro_window
-        
-    AUTOSHOT_DELAY = 1 # number of seconds between automatic shots
+      
     try:
-
-
         # Check for the GSPro OpenAPI connector
         found = False
         while not found:
-            for proc in psutil.process_iter():
-                if 'GSPconnect.exe' == proc.name():
-                    found = True
-                    break
-            if not found:
-                print_colored_prefix(Color.RED, "MLM2PRO Connector ||", "GSPconnect.exe is not running. Reset it via GSPRO->Settings->Game->Reset GSPro Connect->Save")
-                time.sleep(1)
-        
-        club_speed=ball_speed_last=total_spin_last=spin_axis_last=hla_last=vla_last=club_speed_last=path_angle_last=face_angle_last=angle_of_attack=None
-
-        screenshot_attempts = 0
-        incomplete_data_displayed = False
-        ready_message_displayed = False
-
-        # Create a ThreadPoolExecutor
-        executor = ThreadPoolExecutor(max_workers=3)
-
+          for proc in psutil.process_iter():
+              if 'GSPconnect.exe' == proc.name():
+                  found = True
+                  break
+          if not found:
+              print_colored_prefix(Color.RED, "ES16 Connector ||", "GSPconnect.exe is not running. Reset it via GSPRO->Settings->Game->Reset GSPro Connect->Save")
+              time.sleep(1)
+                
+        # Check for the GSPro OpenAPI connector
         print_colored_prefix(Color.GREEN, "GSPro ||", "Connecting to OpenConnect API ({}:{})...".format(HOST, PORT))
-        # Check for the GSPro OpenAPI connector
+        
+        # Initialize 
+        club_speed=ball_speed_last=total_spin_last=spin_axis_last=hla_last=vla_last=club_speed_last=path_angle_last=face_angle_last=angle_of_attack=None
+        voice=pyttsx3.init() # Initialize text to speech
+        voice.setProperty('rate',265)
+        voice.setProperty('voice', 'Microsoft Mary')
+
         found = False
         while not found:
-            ser = serial.Serial('COM7', baudrate=115200)
-            # Check if the port is open
-            if ser.isOpen():
-              print_colored_prefix(Color.GREEN, "GSPro ||", "Connecting to ES16 serial port: ({}:{})...".format(COM_PORT, COM_BAUD))
-              found = True
-            else:
-              print_colored_prefix(Color.RED, "GSPro ||", "Serial port did not open. Bluetooth setup? Is the ES16 turned on?")
-              timer.sleep(5)
+          ser = serial.Serial('COM7', baudrate=115200)
+          # Check if the port is open
+          if ser.isOpen():
+            print_colored_prefix(Color.GREEN, "ES16  ||", "Connecting to ES16 serial port: ({}:{})...".format(COM_PORT, COM_BAUD))
+            found = True
+          else:
+            print_colored_prefix(Color.RED, "ES16  ||", "Serial port did not open. Bluetooth setup? Is the ES16 turned on?")
+            timer.sleep(5)
+         
+        last_sound=0 
+        loop = True           
+        while loop:
           
-        last_sound=0            
-        while True:
-
-            
-            # send any pending shots from the queue.  Will block while awaiting shot responses
-            send_shots()
-
-            if ser.inWaiting() > 0:
-              # Read the data from the port
-              data = ser.read(ser.inWaiting())
-              print(data)
-              ES16Data = parse_input_string(data)
-              print(ES16Data)
-              Pdata = convert_to_message_dict(ES16Data)
-
+          # send any pending shots from the queue.  Will block while awaiting shot responses
+          send_shots()
+        
+          key = ""
+          while (ser.inWaiting() == 0):
+            # Check if a key has been pressed
+            if msvcrt.kbhit():
+              key = msvcrt.getch()
+              if (ord(key) == ord('q')):
+                loop = False
+                break
+              skey = str(chr(ord(key)))          
+              if skey in club_mapping:
+      
+                voice.say("Club Selected,"+club_mapping[skey][0])
+                voice.runAndWait()
+                # Get the corresponding string from the dictionary
+                string = club_mapping[skey][1]
+                # Construct the message string
+                club_change_string = "CLUB" + string + "LOFT000\r"
+                msg = club_change_string.encode('ascii') 
+                print_color_prefix(Color.RED, "|| ES16 Change Clubs ||", msg)
+                ser.write(msg)
+        
+                # After club change look for OK.        
+                while (ser.inWaiting() == 0):  
+                  time.sleep(0.1)
+        
+                #Read the data from the port
+                data = ser.read(2)
+                string_data = data.decode('utf-8')
+                print("Expect: "+string_data)
+                ser.flush()
+                break
+              else:
+                print("You pressed key: ",skey)
+                          
+          # Read the data from the port
+          string_data = string_data2 = ""
+          
+          if (ser.inWaiting() > 0): 
+            ser.timeout = 0.3
+            try: 
+              data = ser.read(168)
+              ser.timeout=0
+              string_data = data.decode('utf-8')
+              print("string_data: ",string_data)
+            except serial.SerialTimeoutException:
+              ser.timeout=0
+              ser.flush()
+              continue
+            # The ESTP send 1 line of radar only data (BS, and CS) on mis-read (ie: fat shots). 
+            # It sends a 2nd line of radar and optical or none at all on a misread.  Maybe have 
+            # our program say "Misread swing again."
+            if (ser.inWaiting() > 0):
+              ser.timeout = 0.3
+              try: 
+                data2 = ser.read(168)
+                ser.timeout=0
+                string_data2 = data2.decode('utf-8')
+                print("string data2: ",string_data2)
+              except serial.SerialTimeoutException:
+                ser.timeout=0
+                ser.flush()
+                continue
+          ser.timeout = 0
+          
+          parsed_data = process_input_string(string_data)
+          if (parsed_data == None):
+            print("ESTP data: ",string_data[:29])
+            ser.flush()
+            continue
+          if (len(parsed_data) == 3):
+            print("ESTP data: ",parsed_data)
+            ser.flush()
+            continue
+          # We now have read data.  Parse it and send to GSPro OpenAPI.  
+          Pdata = process_input_string(string_data2)
+          if (Pdata != None):
+            print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
+            print(Pdata)
+            voice.say("Club Speed, "+Pdata["CS"]+".  Ball Speed, "+Pdata["BS"])
+            voice.runAndWait()
             message = {
-                "DeviceID": "ES16 Tour Plus",
-                "Units": METRIC,
-                "ShotNumber": 999,
-                "APIversion": "1",
-                "BallData": {
-                    "Speed": Pdata["BS"],
-                    "SpinAxis": Pdata["SPA"],
-                    "TotalSpin": Pdata["SP"],
-                    "BackSpin": round(Pdata["SP"] * math.cos(math.radians(Pdata["SPA"]))),
-                    "SideSpin": round(Pdata["SP"] * math.sin(math.radians(Pdata["SPA"]))),
-                    "HLA": Pdata["DIR"],
-                    "VLA": Pdata["LA"]
-                },
-                "ClubData": {
-                    "Speed": Pdata["BS"],
-                    "AngleOfAttack": Pfata["AA"]
-                    "FaceToTarget": Pdata["CFAC"],
-                    "Path": Pdata["CPTH"],
-                    "Loft": Pdata["SPL"]
-                },
-                "ShotDataOptions": {
-                    "ContainsBallData": True,
-                    "ContainsClubData": True,
-                    "LaunchMonitorIsReady": True,
-                    "LaunchMonitorBallDetected": True,
-                    "IsHeartBeat": False
-                }
+              "DeviceID": "ES16 Tour Plus",
+              "Units": METRIC,
+              "ShotNumber": 999,
+              "APIversion": "1",
+              "BallData": {
+                  "Speed": Pdata["BS"],
+                  "SpinAxis": Pdata["SPA"],
+                  "TotalSpin": Pdata["SP"],
+                  "BackSpin": round(Pdata["SP"] * math.cos(math.radians(Pdata["SPA"]))),
+                  "SideSpin": round(Pdata["SP"] * math.sin(math.radians(Pdata["SPA"]))),
+                  "HLA": Pdata["DIR"],
+                  "VLA": Pdata["LA"]
+              },
+              "ClubData": {
+                  "Speed": Pdata["BS"],
+                  "AngleOfAttack": Pdata["AA"]
+                  "FaceToTarget": Pdata["CFAC"],
+                  "Path": Pdata["CPTH"],
+                  "Loft": Pdata["SPL"]
+              },
+              "ShotDataOptions": {
+                  "ContainsBallData": True,
+                  "ContainsClubData": True,
+                  "LaunchMonitorIsReady": True,
+                  "LaunchMonitorBallDetected": True,
+                  "IsHeartBeat": False
+              }
             }
             # Put this shot in the queue
             shot_q.put(message)
             send_shots()
-            ball_speed_last = ball_speed
-            total_spin_last = total_spin
-            spin_axis_last = spin_axis
-            hla_last = hla
-            vla_last = vla
-            club_speed_last = club_speed
-            path_angle_last = path_angle
-            face_angle_last = face_angle
-            angle_of_attack_last = angle_of_attack           
+            
+            ball_speed_last = ball_speed = Pdata["BS"]
+            total_spin_last = total_spin = Pdata["SP"]
+            spin_axis_last = spin_axis = Pdata["SPA"]
+            hla_last = hla = Pdata["DIR"]
+            vla_last = vla = Pdata["LA"]
+            club_speed_last = club_speed = Pdata["BS"]
+            path_angle_last = path_angle = Pdata["CPTH"]
+            face_angle_last = face_angle = Pdata["CFAC"]
+            angle_of_attack_last = angle_of_attack = Pdata["AA"]           
             time.sleep(.5)
 
+          else:
+            voice.say("Misread shot")
+            voice.runAndWait()
+        
+
     except Exception as e:
-        print_colored_prefix(Color.RED, "MLM2PRO Connector ||","An error occurred: {}".format(e))
+        print_colored_prefix(Color.RED, "ES16 Connector ||","An error occurred: {}".format(e))
     except KeyboardInterrupt:
         print("Ctrl-C pressed")
 
@@ -481,37 +521,19 @@ def main():
         # kill and restart the GSPconnector
         path = 'none'
         try:
-            for proc in psutil.process_iter():
-                if 'GSPconnect.exe' == proc.name():
-                    proc = psutil.Process(proc.pid)
-                    path=proc.exe()
-                    proc.terminate()
-                    print_colored_prefix(Color.RED, "MLM2PRO Connector ||", "Closed GSPconnect.exe.")
-                    break
+          for proc in psutil.process_iter():
+            if 'GSPconnect.exe' == proc.name():
+              proc = psutil.Process(proc.pid)
+              path=proc.exe()
+              proc.terminate()
+              print_colored_prefix(Color.RED, "ES16 Connector ||", "Closed GSPconnect.exe.")
+              break
         except Exception as e:
             print(f"Exception: Failed to close and relaunch GSPconnect.exe. {path} ({e})")
             
         if send_shots.sock:
             send_shots.sock.close()
-            print_colored_prefix(Color.RED, "MLM2PRO Connector ||", "Socket to OpenAPI connection closed...")
-
-        if PUTTING_MODE == 1 or PUTTING_MODE == 3:
-            closed = False
-            try:
-                # there are 2 such processes to kill, so don't break out when we close one
-                # Check before doing this that we are the ones in control of the external putting process.  
-                if PUTTING_MODE == 1:
-                for proc in psutil.process_iter():
-                    if 'ball_tracking.exe' == proc.name():
-                        proc = psutil.Process(proc.pid)
-                        proc.terminate()
-                        closed = True
-                if closed:
-                    print_colored_prefix(Color.RED, "MLM2PRO Connector ||", "Closed ball_tracking app")
-                        
-            except Exception as e:
-                print(f"Exception: Failed to close ball tracking app ({e})")
-
+            print_colored_prefix(Color.RED, "ES16 Connector ||", "Socket to OpenAPI connection closed...")
 
 if __name__ == "__main__":
     time.sleep(1)
@@ -520,23 +542,3 @@ if __name__ == "__main__":
 import serial
 
 
-
-# Open the COM port at 115200 baud
-ser = serial.Serial('COM3', baudrate=115200, timeout=0.1)
-# Open the COM port at 115200 baud
-ser = serial.Serial('COM3', baudrate=115200)
-
-# Check if there is any data to read
-if ser.inWaiting() > 0:
-    # Read the data from the port
-    data = ser.read(ser.inWaiting())
-    print(data)
-else:
-    print("No data available to read")
-
-try:
-    # Try to read one character from the port
-    data = ser.read(1)
-    print(data)
-except serial.SerialTimeoutException:
-    print("No data available to read within the timeout")

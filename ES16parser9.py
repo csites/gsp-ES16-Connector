@@ -166,6 +166,8 @@ while (loop == True):
   if (len(parsed_data) == 3):
     print("ESTP data: ",parsed_data)
     ser.flush()
+    voice.say("Misread shot")
+    voice.runAndWait()  
     continue
   if (len(string_data2) == 0):
       string_data2 = string_data

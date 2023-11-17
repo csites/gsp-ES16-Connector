@@ -226,7 +226,7 @@ def process_gspro(resp):
                 # to Send club change to 'Chip' mode for pure optical
                 # Send date to Club change to ES16.
                 if (gsp_stat.Club != gs_stat.Club_previous):
-                  if (gsp_stat.Club == "LW" and  < 40):
+                  if (gsp_stat.Club == "LW" and  gsp_stat.DistToPin < 40):
                     Club_change = "CLUBCHPLOFT000\r"
                   else:
                     Club_change = "CLUB"+gs_to_es[gsp_stat.Club]+"LOFT000\r"

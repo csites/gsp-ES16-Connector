@@ -118,7 +118,7 @@ while (loop == True):
             time.sleep(0.1)
   
           #Read the data from the port
-          data = ser.read(2)
+          data = ser.read(3)
           string_data = data.decode('utf-8')
           print("Expect: "+string_data)
           ser.flush()

@@ -128,8 +128,7 @@ while (loop == True):
                   
   # Read the data from the port
   string_data = string_data2 = ""
-  if (ser.inWaiting() == 3):
-      print(ser.read(3))
+
   if (ser.inWaiting() > 0): 
     ser.timeout = 0.3
     try: 
@@ -168,6 +167,8 @@ while (loop == True):
     print("ESTP data: ",parsed_data)
     ser.flush()
     continue
+  if (len(string_data2) == 0):
+      string_data2 = string_data
   parsed_data2 = process_input_string(string_data2)
   if (parsed_data2 != None):
     print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")

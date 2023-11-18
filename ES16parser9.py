@@ -159,7 +159,22 @@ while (loop == True):
   ser.timeout = 0
   if (len(string_data) == 0 and len(string_data2) == 0):
       continue
-        
+  if (pass_cnt == 2):
+      parsed_data2 = process_input_string(string_data2)
+      if (parsed_data2 != None):
+        print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
+        print("Parsed data2: ",parsed_data2)
+        voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
+        voice.runAndWait()
+        continue
+      else:
+        voice.say("Misread shot sequence")
+        voice.runAndWait()
+        if pass_cnt != 2:
+          voice.say("OK I'm confused.")
+          voice.runAndWait()
+      print("ES data: ",string_data2[:29]) 
+      
   parsed_data = process_input_string(string_data)
   if (parsed_data == None or len(parsed_data) == 3):
     print("ESTP data: ",string_data[:29])
@@ -176,19 +191,7 @@ while (loop == True):
   if (len(string_data2) == 0):
     string_data2 = string_data
       
-  parsed_data2 = process_input_string(string_data2)
-  if (parsed_data2 != None):
-    print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
-    print("Parsed data2: ",parsed_data2)
-    voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
-    voice.runAndWait()
-  else:
-    voice.say("Misread shot sequence")
-    voice.runAndWait()
-    if pass_cnt != 2:
-      voice.say("OK I'm confused.")
-      voice.runAndWait()
-      print("ES data: ",string_data2[:29])
+
   
 voice.stop()    
 ser.close()

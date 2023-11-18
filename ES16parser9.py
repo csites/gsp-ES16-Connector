@@ -144,23 +144,32 @@ while (loop == True):
                 if (len(string_data2) == 168):
                     parsed_data2 = process_input_string(string_data2)
                     if (parsed_data2 != None):
-                       print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
+                       print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
                        print("Parsed data2: ",parsed_data2)
                        voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
-                       voice.runAndWait()            
+                       voice.runAndWait()
+                       ser.flush()
+                       continue
+                    else: 
+                        print(f"I'm confused while parsing: {string_data2}")
+                        ser.flush()
+                        continue
                 else: 
                     print("pass 2 serial read was not 168 in length.  ")
                     ser.flush() 
                     continue
-             except serial.SerialTimeoutException:
+             except ser.SerialTimeoutException:
                 # if pass 2 times out, we have a LM misread.  Lets just say that.
-                print(f"string_data_len: {len(string_data)} string_data: {string_data}")
+                print(f"Timeout pass2.  string_data_len: {len(string_data)} string_data: {string_data}")
                 voice.say("Misread shot sequence")
                 voice.runAndWait() 
                 ser.flush()
                 continue
-         
-    except serial.SerialTimeoutException:
+          else:
+              print(f"Wierdness pass1.  string_data_len: {len(string_data)} string_data: {string_data}")
+              ser.flush()
+              continue
+    except ser.SerialTimeoutException:
       ser.timeout=0
       ser.flush()
       print("serial read1 timeout")

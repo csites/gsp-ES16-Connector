@@ -152,7 +152,7 @@ while (loop == True):
                 print("pass 2 serial read was not 168 in length.  ")
                 ser.flush() 
                 continue
-          except serial.SerialTimeoutException:
+          except: serial.SerialTimeoutException
             # if pass 2 times out, we have a LM misread.  Lets just say that.
             print(f"string_data_len: {len(string_data)} string_data: {string_data}")
             voice.say("Misread shot sequence")
@@ -160,7 +160,7 @@ while (loop == True):
             ser.flush()
             continue
      
-    except serial.SerialTimeoutException:
+    except: serial.SerialTimeoutException
       ser.timeout=0
       ser.flush()
       print("serial read1 timeout")

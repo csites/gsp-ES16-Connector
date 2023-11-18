@@ -132,7 +132,7 @@ while (loop == True):
   if (ser.inWaiting() > 0): 
     ser.timeout = 0.3
     try: 
-      data = ser.read(168)
+      data = ser.read(366)
       ser.timeout=0
       string_data = data.decode('utf-8')
       print("string_data1: ",string_data)

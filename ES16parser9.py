@@ -147,14 +147,14 @@ while (loop == True):
     # our program say "Misread swing again."
     time.sleep(0.5)  
     if (ser.inWaiting() > 0):
-      ser.timeout = 0.3
+      ser.timeout = 1.0
       try: 
         data2 = ser.read(168)
         ser.timeout=0
         string_data2 = data2.decode('utf-8')
         print("string data2: ",string_data2)
         pass_cnt =2
-      except serial.SerialTimeoutException:
+      except ser.SerialTimeoutException:
         ser.timeout=0
         ser.flush()
         print("serial read 2 timeout.")  

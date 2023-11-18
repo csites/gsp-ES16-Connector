@@ -130,7 +130,7 @@ while (loop == True):
   string_data = string_data2 = ""
   pass_cnt =0
   if (ser.inWaiting() > 0): 
-    ser.timeout = 0.3
+    ser.timeout = 0.6
     try: 
       data = ser.read(168)
       ser.timeout=0
@@ -145,7 +145,7 @@ while (loop == True):
     # It sends a 2nd line of radar and optical or none at all on a misread.  Maybe have 
     # our program say "Misread swing again."
     if (ser.inWaiting() > 0):
-      ser.timeout = 0.3
+      ser.timeout = 0.6
       try: 
         data2 = ser.read(168)
         ser.timeout=0

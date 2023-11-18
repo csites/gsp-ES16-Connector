@@ -461,7 +461,7 @@ def main():
           if (parsed_data == None or len(parsed_data) == 3):
             print("ESTP data: ",string_data[:29])
             ser.flush()
-            if pass == 1:
+            if pass_cnt == 1:
               voice.say("Misread shot")
               voice.runAndWait()
             continue
@@ -483,7 +483,7 @@ def main():
           else:
             voice.say("Misread shot sequence")
             voice.runAndWait()
-            if pass != 2:
+            if pass_cnt != 2:
               voice.say("OK I'm confused.")
               voice.runAndWait()
               print("ES data: ",string_data2[:29])

@@ -128,7 +128,7 @@ while (loop == True):
                   
   # Read the data from the port
   string_data = string_data2 = ""
-  pass = 0
+  pass_cnt =0
   if (ser.inWaiting() > 0): 
     ser.timeout = 0.3
     try: 
@@ -136,7 +136,7 @@ while (loop == True):
       ser.timeout=0
       string_data = data.decode('utf-8')
       print("string_data: ",string_data)
-      pass = 1
+      pass_cnt =1
     except serial.SerialTimeoutException:
       ser.timeout=0
       ser.flush()
@@ -151,7 +151,7 @@ while (loop == True):
         ser.timeout=0
         string_data2 = data2.decode('utf-8')
         print("string data2: ",string_data2)
-        pass = 2
+        pass_cnt =2
       except serial.SerialTimeoutException:
         ser.timeout=0
         ser.flush()
@@ -164,7 +164,7 @@ while (loop == True):
   if (parsed_data == None or len(parsed_data) == 3):
     print("ESTP data: ",string_data[:29])
     ser.flush()
-    if pass == 1:
+    if pass_cnt == 1:
       voice.say("Misread shot")
       voice.runAndWait()
     continue
@@ -185,7 +185,7 @@ while (loop == True):
   else:
     voice.say("Misread shot sequence")
     voice.runAndWait()
-    if pass != 2:
+    if pass_cnt != 2:
       voice.say("OK I'm confused.")
       voice.runAndWait()
       print("ES data: ",string_data2[:29])

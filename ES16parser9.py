@@ -130,37 +130,37 @@ while (loop == True):
   if (ser.inWaiting() > 0): 
     ser.timeout = 0.3
     try: 
-      # pass 1.  
-      data = ser.read(168)
-      ser.timeout=0
-      string_data = data.decode('utf-8')
-      if (len(string_data) == 168):
-         try:
-            # pass 2.  
-            ser.timeout = 0.3  
-            data2 = ser.read(168)
-            ser.timeout=0
-            string_data2 = data.decode('utf-8')
-            if (len(string_data2) == 168):
-                parsed_data2 = process_input_string(string_data2)
-                if (parsed_data2 != None):
-                   print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
-                   print("Parsed data2: ",parsed_data2)
-                   voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
-                   voice.runAndWait()            
-            else: 
-                print("pass 2 serial read was not 168 in length.  ")
-                ser.flush() 
+          # pass 1.  
+          data = ser.read(168)
+          ser.timeout=0
+          string_data = data.decode('utf-8')
+          if (len(string_data) == 168):
+             try:
+                # pass 2.  
+                ser.timeout = 0.3  
+                data2 = ser.read(168)
+                ser.timeout=0
+                string_data2 = data.decode('utf-8')
+                if (len(string_data2) == 168):
+                    parsed_data2 = process_input_string(string_data2)
+                    if (parsed_data2 != None):
+                       print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
+                       print("Parsed data2: ",parsed_data2)
+                       voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
+                       voice.runAndWait()            
+                else: 
+                    print("pass 2 serial read was not 168 in length.  ")
+                    ser.flush() 
+                    continue
+             except serial.SerialTimeoutException:
+                # if pass 2 times out, we have a LM misread.  Lets just say that.
+                print(f"string_data_len: {len(string_data)} string_data: {string_data}")
+                voice.say("Misread shot sequence")
+                voice.runAndWait() 
+                ser.flush()
                 continue
-          except: serial.SerialTimeoutException
-            # if pass 2 times out, we have a LM misread.  Lets just say that.
-            print(f"string_data_len: {len(string_data)} string_data: {string_data}")
-            voice.say("Misread shot sequence")
-            voice.runAndWait() 
-            ser.flush()
-            continue
-     
-    except: serial.SerialTimeoutException
+         
+    except serial.SerialTimeoutException:
       ser.timeout=0
       ser.flush()
       print("serial read1 timeout")

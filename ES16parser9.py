@@ -130,22 +130,23 @@ while (loop == True):
   string_data = string_data2 = ""
   pass_cnt =0
   if (ser.inWaiting() > 0): 
-    ser.timeout = 0.6
+    ser.timeout = 0.3
     try: 
       data = ser.read(168)
       ser.timeout=0
       string_data = data.decode('utf-8')
-      print("string_data: ",string_data)
+      print("string_data1: ",string_data)
       pass_cnt =1
     except serial.SerialTimeoutException:
       ser.timeout=0
       ser.flush()
+      print("serial read1 timeout")
       continue
     # The ESTP send 1 line of radar only data (BS, and CS) on mis-read (ie: fat shots). 
     # It sends a 2nd line of radar and optical or none at all on a misread.  Maybe have 
     # our program say "Misread swing again."
     if (ser.inWaiting() > 0):
-      ser.timeout = 0.6
+      ser.timeout = 0.3
       try: 
         data2 = ser.read(168)
         ser.timeout=0
@@ -155,6 +156,7 @@ while (loop == True):
       except serial.SerialTimeoutException:
         ser.timeout=0
         ser.flush()
+        print("serial read 2 timeout.")  
         continue
   ser.timeout = 0
   if (len(string_data) == 0 and len(string_data2) == 0):

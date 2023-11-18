@@ -127,73 +127,31 @@ while (loop == True):
           print("You pressed key: ",skey)
                   
   # Read the data from the port
-  string_data = string_data2 = ""
-  pass_cnt =0
+  string_data = ""
+    
   if (ser.inWaiting() > 0): 
     ser.timeout = 0.3
     try: 
       data = ser.read(366)
       ser.timeout=0
       string_data = data.decode('utf-8')
-      print("string_data1: ",string_data)
-      pass_cnt =1
+      if (len(string_data) == 366):
+        parsed_data2 = process_input_string(string_data[168:])
+        if (parsed_data2 != None):
+            print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
+            print("Parsed data2: ",parsed_data2)
+            voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
+            voice.runAndWait()
+      else:
+        print(f"string_data_len: {len(string_data)} string_data: {string_data}")
+        voice.say("Misread shot sequence")
+        voice.runAndWait()
     except serial.SerialTimeoutException:
       ser.timeout=0
       ser.flush()
       print("serial read1 timeout")
       continue
-    # The ESTP send 1 line of radar only data (BS, and CS) on mis-read (ie: fat shots). 
-    # It sends a 2nd line of radar and optical or none at all on a misread.  Maybe have 
-    # our program say "Misread swing again."
-    time.sleep(0.5)  
-    if (ser.inWaiting() > 0):
-      ser.timeout = 1.0
-      try: 
-        data2 = ser.read(168)
-        ser.timeout=0
-        string_data2 = data2.decode('utf-8')
-        print("string data2: ",string_data2)
-        pass_cnt =2
-      except ser.SerialTimeoutException:
-        ser.timeout=0
-        ser.flush()
-        print("serial read 2 timeout.")  
-        continue
-  ser.timeout = 0
-  if (len(string_data) == 0 and len(string_data2) == 0):
-      continue
-  if (pass_cnt == 2):
-      parsed_data2 = process_input_string(string_data2)
-      if (parsed_data2 != None):
-        print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
-        print("Parsed data2: ",parsed_data2)
-        voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
-        voice.runAndWait()
-        continue
-      else:
-        voice.say("Misread shot sequence")
-        voice.runAndWait()
-        if pass_cnt != 2:
-          voice.say("OK I'm confused.")
-          voice.runAndWait()
-      print("ES data: ",string_data2[:29]) 
-      
-  parsed_data = process_input_string(string_data)
-  if (parsed_data == None or len(parsed_data) == 3):
-    print("ESTP data: ",string_data[:29])
-    ser.flush()
-    if pass_cnt == 1:
-      voice.say("Misread shot")
-      voice.runAndWait()
-    continue
-  if (len(parsed_data) == 3):
-    print("ESTP data: ",parsed_data)
-    ser.flush()
-    continue
-      
-  if (len(string_data2) == 0):
-    string_data2 = string_data
-      
+
 
   
 voice.stop()    

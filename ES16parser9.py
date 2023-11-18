@@ -145,6 +145,7 @@ while (loop == True):
     # The ESTP send 1 line of radar only data (BS, and CS) on mis-read (ie: fat shots). 
     # It sends a 2nd line of radar and optical or none at all on a misread.  Maybe have 
     # our program say "Misread swing again."
+    timer.sleep(0.3)  
     if (ser.inWaiting() > 0):
       ser.timeout = 0.3
       try: 

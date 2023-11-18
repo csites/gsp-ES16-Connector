@@ -152,6 +152,8 @@ while (loop == True):
                        continue
                     else: 
                         print(f"I'm confused while parsing: {string_data2}")
+                        voice.say("Misread shot sequence")
+                        voice.runAndWait() 
                         ser.flush()
                         continue
                 else: 

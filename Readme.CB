@@ -1,0 +1,44 @@
+
+As the comment at the top indicates, the output of
+
+conda list -e > requirements.txt
+
+can be used to create a conda virtual environment with
+
+conda create --name <env> --file requirements.txt
+
+but this output isn't in the right format for pip.
+
+If you want a file which you can use to create a pip virtual environment (i.e. a requirements.txt in the right format) you can install pip within the conda environment, then use pip to create requirements.txt.
+
+conda activate <env>
+conda install pip
+pip freeze > requirements.txt
+
+Then use the resulting requirements.txt to create a pip virtual environment:
+
+python3 -m venv env
+source env/bin/activate
+pip install -r requirements.txt
+
+When I tested this, the packages weren't identical across the outputs (pip included fewer packages) but it was sufficient to set up a functional environment.
+For those getting odd path references in requirements.txt, use:
+
+pip list --format=freeze > requirements.txt
+
+
+or those following this thread and getting odd path references in requirements.txt, use pip list --format=freeze > requirements.txt instead. Ref: stackoverflow.com/a/62886215/13095028 – 
+tnwei
+ Feb 5, 2021 at 2:17
+2
+@JohnnyUtah careful there. Creating a totally empty environment won't include pip and so your recommendation would end up installing all those packages outside the intended target environment. Besides, the OP clearly is asking about moving to a system that doesn't have Conda in the first place, hence the turn to pip and venv. – 
+merv
+ Apr 12, 2021 at 3:36
+2
+Ah good point @merv. Could you explicitly install pip after creating and activating the Conda environment and before running pip install -r requirements.txt? – 
+JohnnyUtah
+ Apr 14, 2021 at 15:48
+7
+If you are using conda the best option is to use "conda env export > environment.yml", commit your environment.yml and then "conda env create -f environment.yml" . – 
+Playing With BI
+ Nov 3, 2021 at 13:39

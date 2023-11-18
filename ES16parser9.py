@@ -128,7 +128,7 @@ while (loop == True):
                   
   # Read the data from the port
   string_data = string_data2 = ""
-
+  pass = 0
   if (ser.inWaiting() > 0): 
     ser.timeout = 0.3
     try: 
@@ -136,6 +136,7 @@ while (loop == True):
       ser.timeout=0
       string_data = data.decode('utf-8')
       print("string_data: ",string_data)
+      pass = 1
     except serial.SerialTimeoutException:
       ser.timeout=0
       ser.flush()
@@ -150,6 +151,7 @@ while (loop == True):
         ser.timeout=0
         string_data2 = data2.decode('utf-8')
         print("string data2: ",string_data2)
+        pass = 2
       except serial.SerialTimeoutException:
         ser.timeout=0
         ser.flush()
@@ -159,9 +161,12 @@ while (loop == True):
       continue
         
   parsed_data = process_input_string(string_data)
-  if (parsed_data == None):
+  if (parsed_data == None or len(parsed_data) == 3):
     print("ESTP data: ",string_data[:29])
     ser.flush()
+    if pass == 1:
+      voice.say("Misread shot")
+      voice.runAndWait()
     continue
   if (len(parsed_data) == 3):
     print("ESTP data: ",parsed_data)
@@ -178,9 +183,13 @@ while (loop == True):
     voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
     voice.runAndWait()
   else:
-    voice.say("Misread shot")
+    voice.say("Misread shot sequence")
     voice.runAndWait()
-    
+    if pass != 2:
+      voice.say("OK I'm confused.")
+      voice.runAndWait()
+      print("ES data: ",string_data2[:29])
+  
 voice.stop()    
 ser.close()
 print("Quit!")

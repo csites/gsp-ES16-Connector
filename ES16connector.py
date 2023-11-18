@@ -1,28 +1,20 @@
-# from concurrent.futures import ThreadPoolExecutor
+# ES16 to GSPro OpenAPI connector.  V 0.3
+# Csites 2023
+
 import time
 import sys
 import os
 import json
-import ctypes
-# from socket_connection import create_socket_connection
-from PIL import Image
-from datetime import datetime
-from matplotlib import pyplot as plt
-import platform
-import random
 import math
 import re
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
-import threading
 from queue import Queue
 import select
-import pywinauto
 import psutil
 from pathlib import Path
 import chime
 import msvcrt
 import pyttsx3
-import sys
 import socket
 import serial
 
@@ -33,7 +25,23 @@ def create_socket_connection(host, port):
     sock.connect(server_address)
     sock.settimeout(5)
     return sock
+    
+# Color pretty print    
+class Color:
+    RESET = '\033[0m'
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    CYAN = '\033[96m'
+    BLUE = '\033[94m'
 
+def print_colored_prefix(color, prefix, message):
+    print(f"{color}{prefix}{Color.RESET}", message)
+
+# Establish a shot Queue
+shot_q = Queue()
+
+# Key/value arrays for club selection routines.
 ES_gsp_Clubs="Drv DR, 3Wd W2, 3Wd W3, 4Wd W4, 5Wd W5, 7Wd W7, 7Wd W6, 2Hy H2, 3Hy H3, 4Hy H4, 5Hy H7, 5Hy H6, 5Hy H5, 2Ir I2, 2Ir I1, 3Ir I3, 4Ir I4, 5Ir I5, 6Ir I6,  7Ir I7, 8Ir I8, 9Ir I9, Ptw PW, Gpw GW, Sdw SW, Ldw LW, Chp LW, Ptt PT"
 
 club_mapping = {
@@ -54,18 +62,25 @@ club_mapping = {
     "p": ("Putter", "Ptt","PT"),
 }
 
-class Color:
-    RESET = '\033[0m'
-    RED = '\033[91m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    CYAN = '\033[96m'
-    BLUE = '\033[94m'
+gsclub_2voice_mapping = {
+    "DR": ("Driver", "Drv"),
+    "W3": ("3 Wood", "3Wd"),
+    "W5": ("5 Wood", "5Wd"),
+    "H4": ("4 Hybrid", "4Hy"),
+    "I4": ("4 Iron", "4Ir"),
+    "I5": ("5 Iron", "5Ir"),
+    "I6": ("6 Iron", "6Ir"),
+    "I7": ("7 Iron", "7Ir"),
+    "I8": ("8 Iron", "8Ir"),
+    "I9": ("9 Iron", "9Ir"),
+    "PW": ("Pitch Wedge", "Ptw"),
+    "GW": ("Gap Wedge", "Gpw"),
+    "SW": ("Sand Wedge", "Swd"),
+    "LW": ("Lob Wedge Chip", "Chp"),
+    "PT": ("Putter", "Ptt"),
+}
 
-def print_colored_prefix(color, prefix, message):
-    print(f"{color}{prefix}{Color.RESET}", message)
-
-# Create the key/value variable lists for club conversion.
+# Club Selection helper. Create the key/value variable lists for club conversion. This is so we can go back and forth between 
 def create_key_value_variable_lists() -> tuple[dict, dict]:
   """Creates two key/value variable lists from an ES-to-GSP club map.
   Args:
@@ -85,7 +100,7 @@ def create_key_value_variable_lists() -> tuple[dict, dict]:
     print(es_club+" -- "+gs_club)
     gs_to_es[gs_club] = es_club
     es_to_gs[es_club] = gs_club
-    
+  
   return gs_to_es, es_to_gs
   
 gs_to_es, es_to_gs = create_key_value_variable_lists()
@@ -116,34 +131,10 @@ def process_input_string(input_string):
 
     return mydict
 
-#Function to convert the string to a key/value data structure.
-def convert_to_message_dict(processed_string):
-    """Converts the output of the 'process_input_string()` function into a message dictionary.
-    Args:
-      processed_string: The output of the 'process_input_string()` function.
-    Returns:
-      A dictionary containing the message data.
-    """
-    message_dict = {}
-    for key_value_pair in processed_string.split(', '):
-      key, value = key_value_pair.split(' ')
-      message_dict[key] = value
-    return message_dict
 
 
-# Print the temporary directory created at runtime, due to --onefile
-# print(os.listdir(sys._MEIPASS))
 
-chime.theme('big-sur')
-screenshot_folder = "bad_screenshots"
-shot_q = Queue()
-
-
-class TestModes :
-    none = 0
-    auto_shot = 1 # allows debugging without having to hit shots
-
-# Loading settings
+# Load settings.json and setup environment.
 def load_settings():
     fname = "settings.json"
     if len(sys.argv) > 1 :
@@ -183,10 +174,8 @@ if METRIC is None:
     METRIC="Yards"
 if AUDIBLE_READY is None:
     AUDIBLE_READY="YES"
-        
-test_mode = TestModes.none
-#test_mode = TestModes.auto_shot
 
+# Setup the GSPro status variable
 class c_GSPRO_Status:
     Ready = True
     ShotReceived = False
@@ -199,7 +188,7 @@ class c_GSPRO_Status:
     
 gsp_stat = c_GSPRO_Status()
 gsp_stat.Putter = False
-gsp_stat.Ready = test_mode == TestModes.auto_shot
+gsp_stat.Ready = True
 
 def process_gspro(resp):
     global putter_in_use
@@ -226,15 +215,31 @@ def process_gspro(resp):
                 # to Send club change to 'Chip' mode for pure optical
                 # Send date to Club change to ES16.
                 if (gsp_stat.Club != gs_stat.Club_previous):
+                  voice.say("Changing clubs to "+gsclubs_2voice_mapping[gps_stat.Club][0]+".")
+                  voice.runAndWait()
+                  # If we want to check for an external putter application
+                  # We might want to do it here, or set a trigger for it  
+ 
                   if (gsp_stat.Club == "LW" and  gsp_stat.DistToPin < 40):
                     Club_change = "CLUBCHPLOFT000\r"
                   else:
                     Club_change = "CLUB"+gs_to_es[gsp_stat.Club]+"LOFT000\r"
-                  ser.send(Club_change)
-                  gsp_stat.Club_previous == gsp_stat.Club
-                  data = read_serial_data(ser)
-                  if (data == "OK\r"):
-                    print_colored_prefix(Color.GREEN,"ES16 Connector ||", f"Change Club: {gs_to_es[gsp_stat.Club]}, Distance to Pin: {gsp_stat.DistToPin}")
+
+                  msg = club_change.encode('ascii') 
+                  print_color_prefix(Color.RED, "|| ES16 Change Clubs ||", msg)
+                  print_colored_prefix(Color.GREEN,"|| ES16 Connector    ||", f"Change Club: {gs_to_es[gsp_stat.Club]}, Distance to Pin: {gsp_stat.DistToPin}")
+                  ser.write(msg)
+       
+                  # After club change look for OK.        
+                  while (ser.inWaiting() == 0):  
+                    time.sleep(0.1)
+          
+                  #Read the data from the port
+                  data = ser.read(3)
+                  string_data = data.decode('utf-8')
+                  print("Expect: "+string_data)
+                  ser.flush()
+                  
                                             
     return code_200_found
     
@@ -343,7 +348,7 @@ gspro_window = None
 
 
 def main():
-      
+
     try:
         # Check for the GSPro OpenAPI connector
         found = False
@@ -361,9 +366,12 @@ def main():
         
         # Initialize 
         club_speed=ball_speed_last=total_spin_last=spin_axis_last=hla_last=vla_last=club_speed_last=path_angle_last=face_angle_last=angle_of_attack=None
+      
         voice=pyttsx3.init() # Initialize text to speech
         voice.setProperty('rate',265)
         voice.setProperty('voice', 'Microsoft Mary')
+        voice.say("E S 16 Connector is Ready!")
+        voice.runAndWait()
 
         found = False
         while not found:
@@ -377,49 +385,47 @@ def main():
             timer.sleep(5)
          
         last_sound=0 
-        loop = True           
-        while loop:
-          
-          # send any pending shots from the queue.  Will block while awaiting shot responses
-          send_shots()
-        
+
+        # Check if there is any data to read
+        loop=True
+        while (loop == True):
           key = ""
           while (ser.inWaiting() == 0):
-            # Check if a key has been pressed
-            if msvcrt.kbhit():
-              key = msvcrt.getch()
-              if (ord(key) == ord('q')):
-                loop = False
-                break
-              skey = str(chr(ord(key)))          
-              if skey in club_mapping:
-      
-                voice.say("Club Selected,"+club_mapping[skey][0])
-                voice.runAndWait()
-                # Get the corresponding string from the dictionary
-                string = club_mapping[skey][1]
-                # Construct the message string
-                club_change_string = "CLUB" + string + "LOFT000\r"
-                msg = club_change_string.encode('ascii') 
-                print_color_prefix(Color.RED, "|| ES16 Change Clubs ||", msg)
-                ser.write(msg)
+              # Check if a key has been pressed
+              if msvcrt.kbhit():
+                key = msvcrt.getch()
+                if (ord(key) == ord('q')):
+                  loop = False
+                  break
+                skey = str(chr(ord(key)))          
+                if skey in club_mapping:
         
-                # After club change look for OK.        
-                while (ser.inWaiting() == 0):  
-                  time.sleep(0.1)
-        
-                #Read the data from the port
-                data = ser.read(2)
-                string_data = data.decode('utf-8')
-                print("Expect: "+string_data)
-                ser.flush()
-                break
-              else:
-                print("You pressed key: ",skey)
+                  voice.say("Club Selected,"+club_mapping[skey][0])
+                  voice.runAndWait()
+                  # Get the corresponding string from the dictionary
+                  string = club_mapping[skey][1]
+                  # Construct the message string
+                  club_change_string = "CLUB" + string + "LOFT000\r"
+                  msg = club_change_string.encode('ascii') 
+                  print_color_prefix(Color.RED, "|| ES16 Change Clubs ||", msg)
+                  ser.write(msg)
+          
+                  # After club change look for OK.        
+                  while (ser.inWaiting() == 0):  
+                    time.sleep(0.1)
+          
+                  #Read the data from the port
+                  data = ser.read(3)
+                  string_data = data.decode('utf-8')
+                  print("Expect: "+string_data)
+                  ser.flush()
+                  break
+                else:
+                  print("You pressed key: ",skey)
                           
           # Read the data from the port
           string_data = string_data2 = ""
-          
+          pass_cnt = 0
           if (ser.inWaiting() > 0): 
             ser.timeout = 0.3
             try: 
@@ -427,6 +433,7 @@ def main():
               ser.timeout=0
               string_data = data.decode('utf-8')
               print("string_data: ",string_data)
+              pass_cnt = 1
             except serial.SerialTimeoutException:
               ser.timeout=0
               ser.flush()
@@ -441,23 +448,47 @@ def main():
                 ser.timeout=0
                 string_data2 = data2.decode('utf-8')
                 print("string data2: ",string_data2)
+                pass_cnt = 2
               except serial.SerialTimeoutException:
                 ser.timeout=0
                 ser.flush()
                 continue
           ser.timeout = 0
-          
+          if (len(string_data) == 0 and len(string_data2) == 0):
+              continue
+                
           parsed_data = process_input_string(string_data)
-          if (parsed_data == None):
+          if (parsed_data == None or len(parsed_data) == 3):
             print("ESTP data: ",string_data[:29])
             ser.flush()
+            if pass == 1:
+              voice.say("Misread shot")
+              voice.runAndWait()
             continue
           if (len(parsed_data) == 3):
             print("ESTP data: ",parsed_data)
             ser.flush()
             continue
-          # We now have read data.  Parse it and send to GSPro OpenAPI.  
-          Pdata = process_input_string(string_data2)
+
+          print(f"Pass count: {pass_cnt} String data2 lenght: {len(string_data2)}")     
+          if (len(string_data2) == 0):
+            string_data2 = string_data
+              
+          parsed_data2 = process_input_string(string_data2)
+          if (parsed_data2 != None):
+            print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
+            print("Parsed data2: ",parsed_data2)
+            voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
+            voice.runAndWait()
+          else:
+            voice.say("Misread shot sequence")
+            voice.runAndWait()
+            if pass != 2:
+              voice.say("OK I'm confused.")
+              voice.runAndWait()
+              print("ES data: ",string_data2[:29])
+
+          
           if (Pdata != None):
             print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
             print(Pdata)
@@ -511,7 +542,6 @@ def main():
             voice.say("Misread shot")
             voice.runAndWait()
         
-
     except Exception as e:
         print_colored_prefix(Color.RED, "ES16 Connector ||","An error occurred: {}".format(e))
     except KeyboardInterrupt:
@@ -535,10 +565,9 @@ def main():
             send_shots.sock.close()
             print_colored_prefix(Color.RED, "ES16 Connector ||", "Socket to OpenAPI connection closed...")
 
+
 if __name__ == "__main__":
     time.sleep(1)
-    plt.ion()  # Turn interactive mode on.
     main()
-import serial
 
 

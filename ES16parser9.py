@@ -126,7 +126,7 @@ while (loop == True):
         else:
           print("You pressed key: ",skey)
                   
-
+  pass_cnt=0
   if (ser.inWaiting() > 0):
     ser.timeout = 0.3
     try: 
@@ -149,13 +149,13 @@ while (loop == True):
                        print("Parsed data2: ",parsed_data2)
                        voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
                        voice.runAndWait()
+                       pass_cnt=2
                        ser.flush()
                        continue
                     else: 
                         # This is odd.  
-                        print(f"I'm confused while parsing: {string_data2}")
-                        voice.say("Misread shot sequence")
-                        voice.runAndWait() 
+                        print(string_data2)
+                        pass_cnt=1
                         ser.flush()
                         continue
                 else: 
@@ -180,7 +180,11 @@ while (loop == True):
       ser.flush()
       print("serial read1 timeout")
       continue
-      # End of pass1 
+        
+# End of pass1 
+    if (pass_cnt==1):
+       voice.say("Misread shot sequence")
+       voice.runAndWait() 
 
 # End While (loop)
 

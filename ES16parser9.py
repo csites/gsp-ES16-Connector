@@ -131,7 +131,7 @@ while (loop == True):
     ser.timeout = 0.3
     try: 
           # pass 1.  
-          data = ser.read(168)
+          data = ser.read(169)
           ser.timeout=0
           string_data = data.decode('utf-8')
           if (len(string_data) == 168):
@@ -142,7 +142,7 @@ while (loop == True):
                 ser.timeout=0
                 string_data2 = data.decode('utf-8')
                 print(f"data2 lenght = {len(string_data2)}") 
-                if (len(string_data2) == 168):
+                if (len(string_data2) == 169):
                     parsed_data2 = process_input_string(string_data2)
                     if (parsed_data2 != None):
                        print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")

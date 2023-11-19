@@ -126,8 +126,9 @@ while (loop == True):
         else:
           print("You pressed key: ",skey)
                   
-  
-  if (ser.inWaiting() > 0): 
+  serialcnt=ser.inWaiting()
+  if (serialcnt > 0):
+    print(f"Serial CNT: {serialcnt}")
     ser.timeout = 0.3
     try: 
           # pass 1.  

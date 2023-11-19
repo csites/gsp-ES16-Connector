@@ -166,7 +166,7 @@ while (loop == True):
                         ser.flush()
                         continue
                 else: 
-                    print("pass 2 serial read was not 168 in length.  ")
+                    print(f"Pass 2 serial read was not 168 in length. {len(string_data2)}")
                     ser.flush() 
                     continue
              except ser.SerialTimeoutException:

@@ -138,7 +138,7 @@ while (loop == True):
              try:
                 # pass 2.  
                 ser.timeout = 0.3  
-                data2 = ser.read(168)
+                data2 = ser.read(169)
                 ser.timeout=0
                 string_data2 = data.decode('utf-8')
                 print(f"data2 lenght = {len(string_data2)}") 

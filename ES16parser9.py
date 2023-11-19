@@ -90,6 +90,7 @@ voice.setProperty('rate',265)
 voice.setProperty('voice', 'Microsoft Mary')
   
 # Check if there is any data to read
+pass_cnt=0
 loop=True
 while (loop == True):
   key = ""
@@ -125,7 +126,11 @@ while (loop == True):
           break
         else:
           print("You pressed key: ",skey)
-                  
+
+  if (pass_cnt==1):
+       voice.say("Misread shot sequence")
+       voice.runAndWait() 
+               
   pass_cnt=0
   if (ser.inWaiting() > 0):
     ser.timeout = 0.3
@@ -181,11 +186,7 @@ while (loop == True):
       print("serial read1 timeout")
       continue
         
-# End of pass1 
-    if (pass_cnt==1):
-       voice.say("Misread shot sequence")
-       voice.runAndWait() 
-
+    # End of pass1 
 # End While (loop)
 
 voice.stop()    

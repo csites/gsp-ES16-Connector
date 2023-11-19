@@ -385,7 +385,6 @@ def main():
             timer.sleep(5)
          
         last_sound=0 
-
         # Check if there is any data to read
         loop=True
         while (loop == True):
@@ -423,124 +422,104 @@ def main():
                 else:
                   print("You pressed key: ",skey)
                           
-          # Read the data from the port
-          string_data = string_data2 = ""
-          pass_cnt = 0
+          
           if (ser.inWaiting() > 0): 
             ser.timeout = 0.3
             try: 
-              data = ser.read(168)
-              ser.timeout=0
-              string_data = data.decode('utf-8')
-              print("string_data: ",string_data)
-              pass_cnt = 1
-            except serial.SerialTimeoutException:
+                  # pass 1.  
+                  data = ser.read(168)
+                  ser.timeout=0
+                  string_data = data.decode('utf-8')
+                  if (len(string_data) == 168):
+                     try:
+                        # pass 2.  
+                        ser.timeout = 0.3  
+                        data2 = ser.read(168)
+                        ser.timeout=0
+                        string_data2 = data.decode('utf-8')
+                        if (len(string_data2) == 168):
+                            Pdata = process_input_string(string_data2)
+                            if (Pdata2 != None):
+                              print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
+                              print("Parsed data2: ",Pdata)
+                              voice.say("Club Speed, "+Pata["CS"]+".  Ball Speed, "+Pdata["BS"])
+                              voice.runAndWait()
+                                         
+                              if (Pdata != None):
+                                print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
+                                print(Pdata)
+                                voice.say("Club Speed, "+Pdata["CS"]+".  Ball Speed, "+Pdata["BS"])
+                                voice.runAndWait()
+                                message = {
+                                  "DeviceID": "ES16 Tour Plus",
+                                  "Units": METRIC,
+                                  "ShotNumber": 999,
+                                  "APIversion": "1",
+                                  "BallData": {
+                                      "Speed": Pdata["BS"],
+                                      "SpinAxis": Pdata["SPA"],
+                                      "TotalSpin": Pdata["SP"],
+                                      "BackSpin": round(Pdata["SP"] * math.cos(math.radians(Pdata["SPA"]))),
+                                      "SideSpin": round(Pdata["SP"] * math.sin(math.radians(Pdata["SPA"]))),
+                                      "HLA": Pdata["DIR"],
+                                      "VLA": Pdata["LA"]
+                                  },
+                                  "ClubData": {
+                                      "Speed": Pdata["BS"],
+                                      "AngleOfAttack": Pdata["AA"],
+                                      "FaceToTarget": Pdata["CFAC"],
+                                      "Path": Pdata["CPTH"],
+                                      "Loft": Pdata["SPL"]
+                                  },
+                                  "ShotDataOptions": {
+                                      "ContainsBallData": True,
+                                      "ContainsClubData": True,
+                                      "LaunchMonitorIsReady": True,
+                                      "LaunchMonitorBallDetected": True,
+                                      "IsHeartBeat": False
+                                  }
+                                }
+                                # Put this shot in the queue
+                                shot_q.put(message)
+                                send_shots()
+                                
+                                ball_speed_last = ball_speed = Pdata["BS"]
+                                total_spin_last = total_spin = Pdata["SP"]
+                                spin_axis_last = spin_axis = Pdata["SPA"]
+                                hla_last = hla = Pdata["DIR"]
+                                vla_last = vla = Pdata["LA"]
+                                club_speed_last = club_speed = Pdata["BS"]
+                                path_angle_last = path_angle = Pdata["CPTH"]
+                                face_angle_last = face_angle = Pdata["CFAC"]
+                                angle_of_attack_last = angle_of_attack = Pdata["AA"]           
+                                ser.flush()
+                                continue
+                            else: 
+                                print(f"I'm confused while parsing: {string_data2}")
+                                voice.say("Misread shot sequence")
+                                voice.runAndWait() 
+                                ser.flush()
+                                continue
+                        else: 
+                            print("pass 2 serial read was not 168 in length.  ")
+                            ser.flush() 
+                            continue
+                     except ser.SerialTimeoutException:
+                        # if pass 2 times out, we have a LM misread.  Lets just say that.
+                        print(f"Timeout pass2.  string_data_len: {len(string_data)} string_data: {string_data}")
+                        voice.say("Misread shot sequence")
+                        voice.runAndWait() 
+                        ser.flush()
+                        continue
+                  else:
+                      print(f"Wierdness pass1.  string_data_len: {len(string_data)} string_data: {string_data}")
+                      ser.flush()
+                      continue
+            except ser.SerialTimeoutException:
               ser.timeout=0
               ser.flush()
+              print("serial read1 timeout")
               continue
-            # The ESTP send 1 line of radar only data (BS, and CS) on mis-read (ie: fat shots). 
-            # It sends a 2nd line of radar and optical or none at all on a misread.  Maybe have 
-            # our program say "Misread swing again."
-            if (ser.inWaiting() > 0):
-              ser.timeout = 0.3
-              try: 
-                data2 = ser.read(168)
-                ser.timeout=0
-                string_data2 = data2.decode('utf-8')
-                print("string data2: ",string_data2)
-                pass_cnt = 2
-              except serial.SerialTimeoutException:
-                ser.timeout=0
-                ser.flush()
-                continue
-          ser.timeout = 0
-          if (len(string_data) == 0 and len(string_data2) == 0):
-              continue
-                
-          parsed_data = process_input_string(string_data)
-          if (parsed_data == None or len(parsed_data) == 3):
-            print("ESTP data: ",string_data[:29])
-            ser.flush()
-            if pass_cnt == 1:
-              voice.say("Misread shot")
-              voice.runAndWait()
-            continue
-          if (len(parsed_data) == 3):
-            print("ESTP data: ",parsed_data)
-            ser.flush()
-            continue
-
-          print(f"Pass count: {pass_cnt} String data2 lenght: {len(string_data2)}")     
-          if (len(string_data2) == 0):
-            string_data2 = string_data
-              
-          parsed_data2 = process_input_string(string_data2)
-          if (parsed_data2 != None):
-            print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
-            print("Parsed data2: ",parsed_data2)
-            voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
-            voice.runAndWait()
-          else:
-            voice.say("Misread shot sequence")
-            voice.runAndWait()
-            if pass_cnt != 2:
-              voice.say("OK I'm confused.")
-              voice.runAndWait()
-              print("ES data: ",string_data2[:29])
-
-          
-          if (Pdata != None):
-            print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
-            print(Pdata)
-            voice.say("Club Speed, "+Pdata["CS"]+".  Ball Speed, "+Pdata["BS"])
-            voice.runAndWait()
-            message = {
-              "DeviceID": "ES16 Tour Plus",
-              "Units": METRIC,
-              "ShotNumber": 999,
-              "APIversion": "1",
-              "BallData": {
-                  "Speed": Pdata["BS"],
-                  "SpinAxis": Pdata["SPA"],
-                  "TotalSpin": Pdata["SP"],
-                  "BackSpin": round(Pdata["SP"] * math.cos(math.radians(Pdata["SPA"]))),
-                  "SideSpin": round(Pdata["SP"] * math.sin(math.radians(Pdata["SPA"]))),
-                  "HLA": Pdata["DIR"],
-                  "VLA": Pdata["LA"]
-              },
-              "ClubData": {
-                  "Speed": Pdata["BS"],
-                  "AngleOfAttack": Pdata["AA"],
-                  "FaceToTarget": Pdata["CFAC"],
-                  "Path": Pdata["CPTH"],
-                  "Loft": Pdata["SPL"]
-              },
-              "ShotDataOptions": {
-                  "ContainsBallData": True,
-                  "ContainsClubData": True,
-                  "LaunchMonitorIsReady": True,
-                  "LaunchMonitorBallDetected": True,
-                  "IsHeartBeat": False
-              }
-            }
-            # Put this shot in the queue
-            shot_q.put(message)
-            send_shots()
-            
-            ball_speed_last = ball_speed = Pdata["BS"]
-            total_spin_last = total_spin = Pdata["SP"]
-            spin_axis_last = spin_axis = Pdata["SPA"]
-            hla_last = hla = Pdata["DIR"]
-            vla_last = vla = Pdata["LA"]
-            club_speed_last = club_speed = Pdata["BS"]
-            path_angle_last = path_angle = Pdata["CPTH"]
-            face_angle_last = face_angle = Pdata["CFAC"]
-            angle_of_attack_last = angle_of_attack = Pdata["AA"]           
-            time.sleep(.5)
-
-          else:
-            voice.say("Misread shot")
-            voice.runAndWait()
         
     except Exception as e:
         print_colored_prefix(Color.RED, "ES16 Connector ||","An error occurred: {}".format(e))

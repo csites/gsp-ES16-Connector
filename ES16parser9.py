@@ -127,10 +127,7 @@ while (loop == True):
         else:
           print("You pressed key: ",skey)
 
-  if (pass_cnt==1):
-       voice.say("Misread shot sequence")
-       voice.runAndWait() 
-               
+              
   pass_cnt=0
   if (ser.inWaiting() > 0):
     ser.timeout = 0.3
@@ -138,7 +135,7 @@ while (loop == True):
           # pass 1.   Read data + carriage return
           data = ser.read(169)
           ser.timeout=0
-          # ser.flush()
+          ser.flush()
           string_data = data.decode('utf-8')[:168]
           if (len(string_data) == 168):
              try:
@@ -146,7 +143,7 @@ while (loop == True):
                 ser.timeout = 0.3  
                 data2 = ser.read(169)
                 ser.timeout=0
-                string_data2 = data.decode('utf-8')[:168]
+                string_data2 = data2.decode('utf-8')[:168]
                 if (len(string_data2) == 168):
                     parsed_data2 = process_input_string(string_data2)
                     if (parsed_data2 != None):

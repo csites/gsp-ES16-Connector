@@ -127,7 +127,13 @@ while (loop == True):
         else:
           print("You pressed key: ",skey)
 
-              
+# Try to let us know if we hit a fat ball.  This is convoluted due to 
+# how it handles a fat shot vs a good shot.  So if pass == 1, it only 
+# received the ESTP string and not the ES16 string.
+  if (pass_cnt == 1):
+    voice.say("Misread shot sequence")
+    voice.runAndWait() 
+
   pass_cnt=0
   if (ser.inWaiting() > 0):
     ser.timeout = 0.3

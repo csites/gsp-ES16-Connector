@@ -133,6 +133,7 @@ while (loop == True):
           # pass 1.   Read data + carriage return
           data = ser.read(169)
           ser.timeout=0
+          ser.flush()
           string_data = data.decode('utf-8')[:168]
           if (len(string_data) == 168):
              try:
@@ -141,7 +142,6 @@ while (loop == True):
                 data2 = ser.read(169)
                 ser.timeout=0
                 string_data2 = data.decode('utf-8')[:168]
-                print(f"data2 lenght = {len(string_data2)}") 
                 if (len(string_data2) == 168):
                     parsed_data2 = process_input_string(string_data2)
                     if (parsed_data2 != None):

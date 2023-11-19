@@ -126,9 +126,8 @@ while (loop == True):
         else:
           print("You pressed key: ",skey)
                   
-  serialcnt=ser.inWaiting()
-  if (serialcnt > 0):
-    print(f"Serial CNT: {serialcnt}")
+
+  if (ser.inWaiting() > 0):
     ser.timeout = 0.3
     try: 
           # pass 1.  
@@ -140,6 +139,7 @@ while (loop == True):
                 # pass 2.  
                 ser.timeout = 0.3  
                 data2 = ser.read(168)
+                print(f"data2 lenght = {len(data2)}") 
                 ser.timeout=0
                 string_data2 = data.decode('utf-8')
                 if (len(string_data2) == 168):
@@ -152,6 +152,7 @@ while (loop == True):
                        ser.flush()
                        continue
                     else: 
+                        # This is odd.  
                         print(f"I'm confused while parsing: {string_data2}")
                         voice.say("Misread shot sequence")
                         voice.runAndWait() 
@@ -168,16 +169,21 @@ while (loop == True):
                 voice.runAndWait() 
                 ser.flush()
                 continue
+                # End of pass2
           else:
               print(f"Wierdness pass1.  string_data_len: {len(string_data)} string_data: {string_data}")
               ser.flush()
               continue
+             
     except ser.SerialTimeoutException:
       ser.timeout=0
       ser.flush()
       print("serial read1 timeout")
       continue
-  
+      # End of pass1 
+
+# End While (loop)
+
 voice.stop()    
 ser.close()
 print("Quit!")

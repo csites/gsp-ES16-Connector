@@ -140,7 +140,7 @@ while (loop == True):
           # pass 1.   Read data + carriage return
           data = ser.read(168)
           ser.timeout=0
-          ser.flush()
+#          ser.flush()
           string_data = data.decode('utf-8')
           if (len(string_data) == 168):
              try:

@@ -130,25 +130,39 @@ while (loop == True):
 # Try to let us know if we hit a fat ball.  This is convoluted due to 
 # how it handles a fat shot vs a good shot.  So if pass == 1, it only 
 # received the ESTP string and not the ES16 string.
-  if (pass_cnt == 1):
-    voice.say("Misread shot sequence")
-    voice.runAndWait() 
-  pass_cnt=0
+
   if (ser.inWaiting() > 0):
-    ser.timeout = 0.3
     try: 
          # pass 1.   Read data + carriage return First data should be the ESTP line.
+         ser.timeout = 0.3
          data = ser.read(168)
-         ser.timeout=0
+         ser.timeout = None
          ser.flush()
          string_data = data.decode('utf-8')
+         print(f"Pass1 data read: {len(data)}")
          parsed_data = process_input_string(string_data)
          print(string_data)
+         # force a 1/2 sleep.
+         time.sleep(1000/1000)
+         # Check to see if we have real data in pass 1.  Indicates that the sleep wasn't long enough.
+   
+         if (parsed_data != None):
+            print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
+            print("Parsed data2: ",parsed_data2)
+            voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
+            voice.runAndWait()
+            pass_cnt=2
+            ser.flush()
+            continue
+         
+         # Pass 2.  This will be either 0 lenght on a mis-read or 168 if it has data.
          try:  
             ser.timeout = 1.0
             data2 = ser.read(168)
-            ser.timeout=0
+            ser.timeout = None
             string_data2 = data2.decode('utf-8')
+            print(f"Pass2 data read: {len(data2)} {len(string_data2)}")
+          
             if (len(string_data2) == 168):
                 parsed_data2 = process_input_string(string_data2)
                 if (parsed_data2 != None):
@@ -166,7 +180,9 @@ while (loop == True):
                     ser.flush()
                     continue
             else: 
-                print(f"Pass 2 serial read was not 168 in length. {len(string_data2)}")
+                print(f"Pass 2 != 168. {len(string_data2)}")
+                voice.say("Misread shot sequence")
+                voice.runAndWait() 
                 ser.flush() 
                 continue
          except serial.SerialTimeoutException:

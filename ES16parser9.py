@@ -99,33 +99,33 @@ while (loop == True):
       if msvcrt.kbhit():
         key = msvcrt.getch()
         if (ord(key) == ord('q')):
-          loop = False
-          break
+           loop = False
+           break
         skey = str(chr(ord(key)))          
         if skey in club_mapping:
-
-          voice.say("Club Selected,"+club_mapping[skey][0])
-          voice.runAndWait()
-          # Get the corresponding string from the dictionary
-          string = club_mapping[skey][1]
-          # Construct the message string
-          club_change_string = "CLUB" + string + "LOFT000\r"
-          msg = club_change_string.encode('ascii') 
-          print_color_prefix(Color.RED, "|| ES16 Change Clubs ||", msg)
-          ser.write(msg)
   
-          # After club change look for OK.        
-          while (ser.inWaiting() == 0):  
-            time.sleep(0.1)
-  
-          #Read the data from the port
-          data = ser.read(3)
-          string_data = data.decode('utf-8')
-          print("Expect: "+string_data)
-          ser.flush()
-          break
+           voice.say("Club Selected,"+club_mapping[skey][0])
+           voice.runAndWait()
+           # Get the corresponding string from the dictionary
+           string = club_mapping[skey][1]
+           # Construct the message string
+           club_change_string = "CLUB" + string + "LOFT000\r"
+           msg = club_change_string.encode('ascii') 
+           print_color_prefix(Color.RED, "|| ES16 Change Clubs ||", msg)
+           ser.write(msg)
+    
+           # After club change look for OK.        
+           while (ser.inWaiting() == 0):  
+               time.sleep(0.1)
+    
+           #Read the data from the port
+           data = ser.read(3)
+           string_data = data.decode('utf-8')
+           print("Expect: "+string_data)
+           ser.flush()
+           break
         else:
-          print("You pressed key: ",skey)
+           print("You pressed key: ",skey)
 
 # Try to let us know if we hit a fat ball.  This is convoluted due to 
 # how it handles a fat shot vs a good shot.  So if pass == 1, it only 
@@ -137,52 +137,47 @@ while (loop == True):
   if (ser.inWaiting() > 0):
     ser.timeout = 0.3
     try: 
-          # pass 1.   Read data + carriage return
-          data = ser.read(168)
-          ser.timeout=0
-#          ser.flush()
-          string_data = data.decode('utf-8')
-          if (len(string_data) == 168):
-             try:
-                # pass 2.  
-                ser.timeout = 0.3  
-                data2 = ser.read(168)
-                ser.timeout=0
-                string_data2 = data2.decode('utf-8')
-                if (len(string_data2) == 168):
-                    parsed_data2 = process_input_string(string_data2)
-                    if (parsed_data2 != None):
-                       print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
-                       print("Parsed data2: ",parsed_data2)
-                       voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
-                       voice.runAndWait()
-                       pass_cnt=2
-                       ser.flush()
-                       continue
-                    else: 
-                        # This is odd.  
-                        print(string_data2)
-                        pass_cnt=1
-                        ser.flush()
-                        continue
-                else: 
-                    print(f"Pass 2 serial read was not 168 in length. {len(string_data2)}")
-                    ser.flush() 
+         # pass 1.   Read data + carriage return First data should be the ESTP line.
+         data = ser.read(168)
+         ser.timeout=0
+         ser.flush()
+         string_data = data.decode('utf-8')
+         parsed_data = process_input_string(string_data)
+         print(string_data)
+         try:  
+            ser.timeout = 1.0
+            data2 = ser.read(168)
+            ser.timeout=0
+            string_data2 = data2.decode('utf-8')
+            if (len(string_data2) == 168):
+                parsed_data2 = process_input_string(string_data2)
+                if (parsed_data2 != None):
+                    print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
+                    print("Parsed data2: ",parsed_data2)
+                    voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
+                    voice.runAndWait()
+                    pass_cnt=2
+                    ser.flush()
                     continue
-             except ser.SerialTimeoutException:
-                # if pass 2 times out, we have a LM misread.  Lets just say that.
-                print(f"Timeout pass2.  string_data_len: {len(string_data)} string_data: {string_data}")
-                voice.say("Misread shot sequence")
-                voice.runAndWait() 
-                ser.flush()
+                else: 
+                    # This is odd.  
+                    print(string_data2)
+                    pass_cnt=1
+                    ser.flush()
+                    continue
+            else: 
+                print(f"Pass 2 serial read was not 168 in length. {len(string_data2)}")
+                ser.flush() 
                 continue
-                # End of pass2
-          else:
-              print(f"Wierdness pass1.  string_data_len: {len(string_data)} string_data: {string_data}")
+         except serial.SerialTimeoutException:
+            # if pass 2 times out, we have a LM misread.  Lets just say that.
+              print(f"Timeout pass2.  string_data_len: {len(string_data)} string_data: {string_data}")
+              voice.say("Misread shot sequence")
+              voice.runAndWait() 
               ser.flush()
               continue
              
-    except ser.SerialTimeoutException:
+    except serial.SerialTimeoutException:
       ser.timeout=0
       ser.flush()
       print("serial read1 timeout")

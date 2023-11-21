@@ -193,7 +193,7 @@ while (loop == True):
          data2 = ser.read(168)
          if (len(data2) < 168):
            data2.append(data2.decode('utf-8')
-           if (len"".join(data2)) >= 168):
+           if (len("".join(data2)) >= 168):
                break
            else: 
                continue

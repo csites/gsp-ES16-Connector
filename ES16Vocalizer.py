@@ -165,6 +165,7 @@ while (loop == True):
        # pass 1.   Read data + carriage return First data should be the ESTP line.
        ser.timeout = 0.3
        pass_cnt = 1
+       read_cnt = ser.inWaiting()
        data = ser.read(168)
        ser.timeout = None
        string_data = data.decode('utf-8')
@@ -173,11 +174,10 @@ while (loop == True):
        print(string_data)
        # force a 1/2 sleep.
        # Check to see if we have real data in pass 1.  Indicates that the sleep wasn't long enough.
-  
        if (parsed_data != None):
           print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
-          print("Parsed data2: ",parsed_data2)
-          voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
+          print("Parsed data2: ",parsed_data)
+          voice.say("Club Speed, "+parsed_data["CS"]+".  Ball Speed, "+parsed_data["BS"])
           voice.runAndWait()
           pass_cnt=2
           ser.flush()
@@ -187,6 +187,7 @@ while (loop == True):
        # Set a timer
        while(timeit.default_timer() - stime < timeout):
          if (ser.inWaiting() < 168): 
+           print(f"Pass1 serial read count: {read_cnt}")
            continue
          data2 = ser.read(168)
          if (len(data2) != 168):
@@ -194,7 +195,7 @@ while (loop == True):
            break
          string_data2 = data2.decode('utf-8')   
          parsed_data2 =  process_input_string(string_data2) 
-         if (parsed_data != None):
+         if (parsed_data2 != None):
            print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
            print("Parsed data2: ",parsed_data2)
            voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])

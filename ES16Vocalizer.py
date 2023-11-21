@@ -175,24 +175,29 @@ while (loop == True):
        # force a 1/2 sleep.
        # Check to see if we have real data in pass 1.  Indicates that the sleep wasn't long enough.
        if (parsed_data != None):
+          # This should not happen.
           print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
           print("Parsed data2: ",parsed_data)
           voice.say("Club Speed, "+parsed_data["CS"]+".  Ball Speed, "+parsed_data["BS"])
           voice.runAndWait()
           pass_cnt=2
           ser.flush()
+          # Continue to the while loop. 
           continue
-       timeout = 1500 # miliisecs. 1.5 secs.
+       # pass 2.
+       print("Pass1 complete.   Now entering pass2")
+       timeout = 1500 # millisecs. 1.5 secs.
        stime = timeit.default_timer()
        # Set a timer
        while(timeit.default_timer() - stime < timeout):
-         if (ser.inWaiting() < 168): 
-           print(f"Pass1 serial read count: {read_cnt}")
-           continue
          data2 = ser.read(168)
-         if (len(data2) != 168):
-           # give_up.  Something broke
-           break
+         if (len(data2) < 168):
+           data2.append(data2.decode('utf-8')
+           if (len"".join(data2)) >= 168):
+               break
+           else: 
+               continue
+            
          string_data2 = data2.decode('utf-8')   
          parsed_data2 =  process_input_string(string_data2) 
          if (parsed_data2 != None):

@@ -186,7 +186,7 @@ while (loop == True):
        stime = timeit.default_timer()
        # Set a timer
        while(timeit.default_timer() - stime < timeout):
-         if (ser.inWait() < 168): 
+         if (ser.inWaiting() < 168): 
            continue
          data2 = ser.read(168)
          if (len(data2) != 168):
@@ -207,7 +207,7 @@ while (loop == True):
            print(data2)  
            break
        # End of while loop for timer.
-       # if it timed out we should have be a fat or mis-read shot.
+       # if it timed out we should have a fat or misread shot.
        if (pass_cnt == 2):
          continue
        else:

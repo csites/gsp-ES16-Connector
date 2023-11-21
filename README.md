@@ -33,9 +33,7 @@ step2) python ES16Vocalizer.py
 </p><p>
 You may need a few libraries installed to run.  
 Special python libraries: 
-python -m pip install pyttsx3 
-python -m pip install pyserial
-python -m pip install timeit
+python -m pip install pyttsx3 pyserial timeit
 </p><p>
 Good luck.  If you need help or have questions, let me know how it goes on https://golfsimulatorforum.com in the Ernest Sports section.
 </p><p>

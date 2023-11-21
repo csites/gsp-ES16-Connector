@@ -20,6 +20,18 @@ On Good full swings, we are given two sets of data.  In other words, The first l
 
 ES16Prt001CS067.0BS082.8CD000.0TD000.0LA12.8SP02259SF1.23CL4HySPA-10.3DIR-06.2LDA00.0AA-2.6DL17.0MH000.0SC+000.0ST+000.0CPTH-03.3CFAC-07.0SPL19.6HT00.00BV8.37VER179End
 
-Which in addition to the the radar acquired Club Speed and Ball speed, contains all of the optically read data from the ES16.  The ES2020 returns a similar string but it begins with ES20 and likely fills out all values.  This is what I parser spits this up. In the ES16Vocalizer, I check the keyboard for a key press, and if the key is pressed is one of the following characters: `1234567890-=\p it will change the club selection on the ES16 correspondint to Driver, 3Wood, 5Wood, 4Hybrid, 4-9 Irons, Pitch Wedge, Gap Wedge, Sand Wedge, Lob Wedge (CHP), and Putter.  It will voice the club selection and send instructions to the ES16 to change clubs.  On a good ball swing it will speek out the Ball Speed and Club Speed from the parsed data of a swing.  The ES16Vocalizer can really help with speed training using the ES16 by give instant feed back on club and ball speed on a golf swing.  On a misread swing (ie. fat shot), it will say "Misread swing sequence", letting you know about that quickly. 
+Which in addition to the the radar acquired Club Speed and Ball speed, contains all of the optically read data from the ES16.  The ES2020 returns a similar string but it begins with ES20 and likely fills out all values.  The parser spits this up and puts it into an easy to use python Key/Value array. In the ES16Vocalizer, I check the keyboard for a key press, and if the key is pressed is one of the following characters: `1234567890-=\p it will change the club selection on the ES16 correspondint to Driver, 3Wood, 5Wood, 4Hybrid, 4-9 Irons, Pitch Wedge, Gap Wedge, Sand Wedge, Lob Wedge (CHP), and Putter.  It will voice the club selection and send instructions to the ES16 to change clubs.  On a good ball swing it will speek out the Ball Speed and Club Speed from the parsed data of a swing.  The ES16Vocalizer can really help with speed training using the ES16 by give instant feed back on club and ball speed on a golf swing.  On a misread swing (ie. fat shot), it will say "Misread swing sequence", letting you know about that quickly. 
+
+<b>Running the ES16Vocalizer.py (Windows)</b>
+step1) Turn on your ES16   
+step2) python ES16Vocalizer.py 
+
+You may need a few libraries installed to run.  
+Special python libraries: 
+python -m pip install pyttsx3 
+python -m pip install pyserial
+python -m pip install timeit
+
+Good luck.  If you need help or have questions, let me know how it goes on golfsimulatorforum.com in the Ernest Sports section.
 
 Acknowlegements:  The ES16Connector borrows heavily from rowengb/GSPro-MLM2PRO-OCR-Connector project.  Mainly it serves as a guide to build the interface between a stock set of LM measurements and the GSPro OpenAPI.  Because the Ernest Sports Tour Plus and friends have putting built-in, the putting code has been removed as well as well.   

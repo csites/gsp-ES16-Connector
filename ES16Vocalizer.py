@@ -195,7 +195,7 @@ while (loop == True):
        # Set a timer
 
        while True:
-         if (ser.inWait() > 0): 
+         if (ser.inWaiting() > 0): 
            data2 = ser.read(168)
            if (len(data2) != 168):
                 # give_up.  Something broke

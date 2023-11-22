@@ -222,7 +222,7 @@ while (loop == True):
         continue  # Loop again
      string_data = data.decode('utf-8')
      print(f"Pass1 data read: {len(data)}")
-     parsed_data = process_input_string(data)
+     parsed_data = process_input_string(string_data)
      print(data)
 
      # force a 1/2 slee       # Check to see if we have real data in pass 1.  Indicates that the sleep wasn't long enough.
@@ -257,7 +257,6 @@ while (loop == True):
         ser.flush()
         continue  # Loop again
 
-     string_data2 = data2   
      string_data2 = data2.decode('utf-8')   
      parsed_data2 = process_input_string(string_data2) 
      if (parsed_data2 != None):

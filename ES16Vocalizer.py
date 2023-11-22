@@ -196,8 +196,11 @@ while (loop == True):
            print("You pressed key: ",skey)
 
 # Try to let us know if we hit a fat ball.  This is convoluted due to 
-# how it handles a fat shot vs a good shot.  So if pass == 1, it only 
-# received the ESTP string and not the ES16 string.
+# how it handles a fat shot vs a good shot.  So in pass == 1, it only 
+# received the ESTP string and not the ES16 string.  In pass2 it may 
+# or may not have another string of 168 bytes of data.  The only way 
+# to tell is if # the pass2 serial read times out, or you have data.
+# (the timeout is unknown (but it feels like 1.5 secs).
 
   if (ser.inWaiting() > 0):
      # pass 1.   Read data + carriage return First data should be the ESTP line.

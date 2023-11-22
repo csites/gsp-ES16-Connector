@@ -80,7 +80,7 @@ def timed_serial_read(ser, length, seconds):
     stime = timeit.default_timer()
 
     # timer loop
-    while (timeit_default_timer() - stime < seconds):
+    while (timeit.default_timer() - stime < seconds):
       if ser.inWaiting():
           c = b""
           while True:
@@ -92,7 +92,7 @@ def timed_serial_read(ser, length, seconds):
                 print(f"Serial port error: {e}")
                 break
               finally:  
-                if val == b"\r" or (timeit_default_time() - stime >= seconds) or ccnt > length:
+                if val == b"\r" or (timeit.default_time() - stime >= seconds) or ccnt > length:
                     break
                 else:
                     c += val

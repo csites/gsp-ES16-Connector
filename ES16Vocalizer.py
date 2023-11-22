@@ -214,18 +214,26 @@ while (loop == True):
 
   if (ser.inWaiting() > 0):
      # pass 1.   Read data + carriage return First data should be the ESTP line.
-
+     data == None
      pass_cnt = 1
-     data = ser.read(168)
+     data = ser.read(336)
      if (data == None):
-        print("Pass1: String was None, Returned_time: {retime}, Return_Lenght: {rcnt}.  Check")
+        print("Pass1: String was None. Check")
         continue  # Loop again
+ 
      string_data = data.decode('utf-8')
-     print(f"Pass1 data read: {len(data)}")
+     print(f"Pass1 data read: {len(string_data)}")
+     if (len(string_data) <= 168):
+         voice.say("Misread shot sequence")
+         voice.runAndWait()
+         ser.flush()
+         continue
+     if (len(string_data) <= 336):
+         string_data = string_data[168:]
+         print("pass2: String data"+string_data)
      parsed_data = process_input_string(string_data)
-     print(data)
-
-     # force a 1/2 slee       # Check to see if we have real data in pass 1.  Indicates that the sleep wasn't long enough.
+     print(parsed_data)
+     
      if (parsed_data != None):
         # You should not be here.  This should not happen.
         print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
@@ -237,48 +245,10 @@ while (loop == True):
         # Continue to the while loop. 
         continue
 
-     # pass 2.  Setup a timed serial reader.  
-     print("Pass1 complete.   Now entering pass2")
-     timeout = 1500 # millisecs. 1.5 secs.
-     data2 = []
-     cnt = 0
-     while True:
-         if (ser.inWaiting() > 0):
-             data2 = ser.read(168)
-             break
-         else:
-            time.sleep(0.1)
-            cnt = cnt + 1
-            if (cnt > 10):
-                 break
-
-     if (len(data2) == 0):
-        print("Pass2: String was None.  Check")
-        voice.say("Misread shot sequence")
-        voice.runAndWait()
-        ser.flush()
-        continue  # Loop again
-     if (len(data2) < 168):
-         print(f"Pass2: String was short in Lenght: {len(data2)} data2={data2}")
-         ser.flush()
-         continue
-     string_data2 = data2.decode('utf-8')   
-     parsed_data2 = process_input_string(string_data2) 
-     if (parsed_data2 != None):
-          # This should be a normal well struck ball with all the data.
-          print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
-          print("Parsed data2: ",parsed_data2)
-          voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
-          voice.runAndWait()
-          pass_cnt=2
-          ser.flush()
-          break
-     else:
-          pass_cnt = 1
-          voice.say("Misread shot sequence")
-          voice.runAndWait()
-          ser.flush()
-          continue
+     voice.say("Misread shot sequence")
+     voice.runAndWait()
+     ser.flush()
+     continue
                    
      ser.timeout=0
      ser.flush()

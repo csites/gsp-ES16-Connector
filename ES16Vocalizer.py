@@ -194,12 +194,14 @@ while (loop == True):
        stime = timeit.default_timer()
        # Set a timer
 
-       while True:
-         if (ser.inWaiting() > 0): 
+       data2 = ""
+       While (ser.inWaiting() > 0): 
            data2 = ser.read(168)
            if (len(data2) != 168):
                 # give_up.  Something broke
                 break
+           else:
+                continue  
          string_data2 = data2.decode('utf-8')   
          parsed_data2 =  process_input_string(string_data2) 
          if (parsed_data != None):

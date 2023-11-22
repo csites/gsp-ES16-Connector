@@ -76,6 +76,7 @@ def timed_serial_read(ser, length, seconds):
     This fumction reads a serial port upto 168 characters under a specified number of milliseconds.
     It returns the buffer and the time required to get the buffer.   If it does not reach the length.  
     """
+    buffer=[]
     ccnt = 0
     stime = timeit.default_timer()
 

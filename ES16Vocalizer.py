@@ -92,7 +92,7 @@ def timed_serial_read(ser, length, seconds):
                 print(f"Serial port error: {e}")
                 break
               finally:  
-                if val == b"\r" or (timeit.default_time() - stime >= seconds) or ccnt > length:
+                if val == b"\r" or (timeit.default_timer() - stime >= seconds) or ccnt > length:
                     break
                 else:
                     c += val

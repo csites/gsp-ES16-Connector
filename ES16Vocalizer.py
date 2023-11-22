@@ -78,6 +78,7 @@ def timed_serial_read(ser, length, seconds):
     """
     buffer=[]
     ccnt = 0
+    retry_cnt = 0
     stime = timeit.default_timer()
 
     # timer loop
@@ -86,9 +87,17 @@ def timed_serial_read(ser, length, seconds):
           c = b""
           while True:
               try:
-                while(ser.inWaiting() > 0):
-                  val = ser.read(1)
-                  break
+                while True:
+                 if (ser.inWaiting() > 0):
+                   val = ser.read(1)
+                   break
+                 else
+                   retry_cnt = retry_cnt + 1
+                   if retry_cnt > 10:
+                     continue
+                   else:
+                     break
+                 
               except serial.SerialException as e:
                 print(f"Serial port error: {e}")
                 break

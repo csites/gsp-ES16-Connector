@@ -194,7 +194,7 @@ while (loop == True):
        stime = timeit.default_timer()
        # Set a timer
 
-       data2 = []
+       data2 = b""
        while (ser.inWaiting() > 0): 
            data2 = ser.read(168)
            if (len(data2) != 168):

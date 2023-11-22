@@ -91,7 +91,7 @@ def timed_serial_read(ser, length, seconds):
                  if (ser.inWaiting() > 0):
                    val = ser.read(1)
                    break
-                 else
+                 else:
                    retry_cnt = retry_cnt + 1
                    if retry_cnt > 10:
                      continue

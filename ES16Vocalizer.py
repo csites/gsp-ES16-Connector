@@ -195,42 +195,39 @@ while (loop == True):
        # Set a timer
        time.sleep(0.75)
        data2 = b""
-       while (ser.inWaiting() > 0): 
-           data2 = ser.read(168)
-           if (len(data2) != 168):
-                # give_up.  Something broke
-                break
-           else:
-                continue  
+       if (ser.inWaiting() > 0): 
+          try:
+              data2 = ser.read(168)
+          except serial.SerialTimeoutException:
+              voice.say("Misread shot sequence")
+              voice.runAndWait()
+              ser.flush()
+              continue
+       if (data2 == b""):
+           voice.say("Misread shot sequence")
+           voice.runAndWait()
+           ser.flush()
+           continue
+
        string_data2 = data2.decode('utf-8')   
        parsed_data2 =  process_input_string(string_data2) 
        if (parsed_data != None):
-         print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
-         print("Parsed data2: ",parsed_data2)
-         voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
-         voice.runAndWait()
-         pass_cnt=2
-         ser.flush()
-         break
+           print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
+           print("Parsed data2: ",parsed_data2)
+           voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
+           voice.runAndWait()
+           pass_cnt=2
+           ser.flush()
+           break
        else:
-         # If we are here, then the 2nd read pass returned something unexpected.
-         print(data2)  
-         break
-        
-       # End of while loop for timer.
-       # if it timed out we should have be a fat or mis-read shot.
-       if (pass_cnt == 2):
-         continue
-       else:
-         voice.say("Misread shot sequence")
-         voice.runAndWait()
-         ser.flush()
-         continue
-                   
+           # If we are here, then the 2nd read pass returned something unexpected.
+           print(data2)  
+           break
+\
     except serial.SerialTimeoutException:
        ser.timeout=0
        ser.flush()
-       print("serial read1 timeout")
+       print("pass1 serial read1 timeout")
        voice.say("Serial read1 timeout!")
        voice.runAndWait()
        continue

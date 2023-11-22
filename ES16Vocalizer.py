@@ -122,7 +122,8 @@ voice=pyttsx3.init() # Initialize text to speech
 voice.setProperty('rate',265)
 voice.setProperty('voice', 'Microsoft Mary')
   
-# Check if there is any data to read
+# Check if there is any data to read.  If a keyboard character is pressed see if it's a club selection.
+# If it is a club selection, set the club string and send club change to the ES16.
 pass_cnt=0
 loop=True
 while (loop == True):
@@ -162,9 +163,11 @@ while (loop == True):
 
 # Try to let us know if we hit a fat ball.  This is convoluted due to 
 # how it handles a fat shot vs a good shot.  So if pass == 1, it only 
-# received the ESTP string and not the ES16 string.
-
-  if (ser.inWaiting() > 0):
+# received the ESTP string and not the ES16 string.  ES16 will always send 
+# and ESTP string regardless of bad or good shot data.  It only sends the 
+# the second string (ES16) of data if it has good data, so in that case we
+# can only tell a fat shot if the second read pass times out. (about 1.5sec).
+if (ser.inWaiting() > 0):
     try: 
        # pass 1.   Read data + carriage return First data should be the ESTP line.
        ser.timeout = 0.3

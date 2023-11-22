@@ -184,34 +184,46 @@ while (loop == True):
           ser.flush()
           # Continue to the while loop. 
           continue
-       # pass 2.
+       # pass 2.  Setup a timed serial reader.  
        print("Pass1 complete.   Now entering pass2")
        timeout = 1500 # millisecs. 1.5 secs.
+       data2 = []
        stime = timeit.default_timer()
        # Set a timer
        while(timeit.default_timer() - stime < timeout):
-         data2 = ser.read(168)
-         if (len(data2) < 168):
-           data2.append(data2.decode('utf-8'))
-           if (len("".join(data2)) >= 168):
-               break
-           else: 
-               continue
-            
-         string_data2 = data2.decode('utf-8')   
-         parsed_data2 =  process_input_string(string_data2) 
+         if ser.inWaiting():
+            c = b""
+            while True:
+               val = ser.read(1)
+               if val == b"\r" or (timeit.default_timer() - stime >= timeout):
+                  break
+               else:
+                  c += val
+            data2.append(c.decode('utf-8'))
+         if (len("".join(data2)) >= 168):
+            # Break the timer loop.  We have data.
+            break
+       # OK.  We are out of the timed serial read loop. 
+       string_data2 = data2   
+       # string_data2 = data2.decode('utf-8')   
+
+       if (len(string_data2) >= 168):
+         parsed_data2 = process_input_string(string_data2) 
          if (parsed_data2 != None):
-           print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
-           print("Parsed data2: ",parsed_data2)
-           voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
-           voice.runAndWait()
-           pass_cnt=2
-           ser.flush()
-           break
+            print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
+            print("Parsed data2: ",parsed_data2)
+            voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
+            voice.runAndWait()
+            pass_cnt=2
+            ser.flush()
+            break
          else:
-           # If we are here, then the 2nd read pass returned something unexpected.
-           print(data2)  
-           break
+            pass_cnt = 1
+            break 
+       else:
+         # If we are here, then the 2nd read pass returned something unexpected.
+         print(f"Short data read: {data2}")  
+         break
        # End of while loop for timer.
        # if it timed out we should have a fat or misread shot.
        if (pass_cnt == 2):

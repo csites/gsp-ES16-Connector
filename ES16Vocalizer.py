@@ -193,7 +193,7 @@ while (loop == True):
        timeout = 1500 # miliisecs. 1.5 secs.
        stime = timeit.default_timer()
        # Set a timer
-
+       time.sleep(0.75)
        data2 = b""
        while (ser.inWaiting() > 0): 
            data2 = ser.read(168)

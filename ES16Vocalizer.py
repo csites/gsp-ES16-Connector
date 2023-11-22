@@ -157,7 +157,7 @@ print_color_prefix(Color.GREEN,"||  Press a key to change clubs  ||","` 1 2 3 4 
 
  # Open the COM port at 115200 baud
 try: 
-  ser = serial.Serial('COM7', baudrate=115200)
+  ser = serial.Serial('COM7', baudrate=115200, timeout=0.75)
 except:
   print_color_prefix(Color.RED, "||  ES16 SERIAL LINE No COM port ||","Data Not recieved. Exiting. Check unit and bluetooth connection")
   sys.exit(1)
@@ -214,13 +214,13 @@ while (loop == True):
 
   if (ser.inWaiting() > 0):
      # pass 1.   Read data + carriage return First data should be the ESTP line.
-     timeout = 300 # milliseconds.
+
      pass_cnt = 1
-     data, retime, rcnt = timed_serial_read(ser, timeout, 168)
+     data = ser.read(168)
      if (data == None):
         print("Pass1: String was None, Returned_time: {retime}, Return_Lenght: {rcnt}.  Check")
         continue  # Loop again
-#       string_data = data.decode('utf-8')
+     string_data = data.decode('utf-8')
      print(f"Pass1 data read: {len(data)}")
      parsed_data = process_input_string(data)
      print(data)
@@ -240,7 +240,16 @@ while (loop == True):
      # pass 2.  Setup a timed serial reader.  
      print("Pass1 complete.   Now entering pass2")
      timeout = 1500 # millisecs. 1.5 secs.
-     data2, retime. rcnt = timed_serial_read(ser, timeout, 168) 
+     cnt = 0
+     while True:
+         if (ser.inWaiting() > 0):
+             data2 = ser.read(168)
+             break
+         else:
+            cnt = cnt + 1
+            if (cnt > 10):
+                 break
+
      if (data2 == None):
         print("Pass2: String was None, Returned_time: {retime}, Return_Lenght: {rcnt}.  Check")
         voice.say("Misread shot sequence")
@@ -249,7 +258,7 @@ while (loop == True):
         continue  # Loop again
 
      string_data2 = data2   
-     # string_data2 = data2.decode('utf-8')   
+     string_data2 = data2.decode('utf-8')   
      parsed_data2 = process_input_string(string_data2) 
      if (parsed_data2 != None):
           # This should be a normal well struck ball with all the data.

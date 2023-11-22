@@ -69,22 +69,44 @@ def process_input_string(input_string):
 
     return mydict
 
-# Example usage:
-#input_string = "ESTPPtr001CS091.08BS108.50000000000123456"  # Replace this with your input string
-#processed_string = process_input_string(input_string)
-#if (processed_string != None):
-#  print(processed_string)
-#input_string = "ES16Prt001CS081.0BS108.6CD000.0TD000.0LA20.1SP04736SF1.34CLDrvSPA+21.1DIR+01.1LDA00.0AA+5.4DL23.3MH000.0SC+000.0ST+000.0CPTH-04.5CFAC+02.3SPL17.9HT00.00BV8.38VER179End"
-#parsed_data = process_input_string(input_string)
-#print(processed_string)
-#print(parsed_data['CL'])
-#print(parsed_data['LA'])
-#print(parsed_data['CS'])
-#print(parsed_data['SPA'])
-#print(parsed_data['CPTH'])
-#print(parsed_data['CFAC'])
-#print("end")
+def timed_serial_read(ser, length, seconds):
+""" 
+  Timed serial read function
+  This fumction reads a serial port upto 168 characters under a specified number of milliseconds.
+  It returns the buffer and the time required to get the buffer.   If it does not reach the 
+  length.
+"""   
+    ccnt = 0
+    stime = timeit.default_timer()
 
+    # timer loop
+    while (timeit_default_timer() - stime < seconds):
+      if ser.inWaiting():
+          c = b""
+          while True:
+              try:
+                while(ser.inWaiting() > 0):
+                  val = ser.read(1)
+                  break
+              except serial.SerialException as e:
+                print(f"Serial port error: {e}")
+                break
+              finally:  
+                if val == b"\r" or (timeit_default_time() - stime >= seconds) or ccnt > length:
+                    break
+                else:
+                    c += val
+                    ccnt = ccnt + 1
+          buffer.append(c.decode('utf-8'))  # Decode the bytes to a string
+          ser.timeout = None
+    timecnt = timeit.default_timer() - stime
+    if (ccnt >= length):
+        return buffer, timecnt, ccnt 
+    else:
+        return None, timecnt, ccnt
+"""
+Club_mapping is for keyboard keypress to voice string of club and ES16 Club change code
+"""
 club_mapping = {
     "`": ("Driver", "Drv"),
     "1": ("3 Wood", "3Wd"),
@@ -102,6 +124,23 @@ club_mapping = {
     "\\": ("Lob Wedge Chip", "Chp"),
     "p": ("Putter", "Ptt"),
 }
+
+# Example usage:
+#input_string = "ESTPPtr001CS091.08BS108.50000000000123456"  # Replace this with your input string
+#processed_string = process_input_string(input_string)
+#if (processed_string != None):
+#  print(processed_string)
+#input_string = "ES16Prt001CS081.0BS108.6CD000.0TD000.0LA20.1SP04736SF1.34CLDrvSPA+21.1DIR+01.1LDA00.0AA+5.4DL23.3MH000.0SC+000.0ST+000.0CPTH-04.5CFAC+02.3SPL17.9HT00.00BV8.38VER179End"
+#parsed_data = process_input_string(input_string)
+#print(processed_string)
+#print(parsed_data['CL'])
+#print(parsed_data['LA'])
+#print(parsed_data['CS'])
+#print(parsed_data['SPA'])
+#print(parsed_data['CPTH'])
+#print(parsed_data['CFAC'])
+#print("end")
+
 
 print_color_prefix(Color.GREEN,"||  ES16 SERIAL LINE READ/PARSE  ||","Opening serial port COM7")
 print_color_prefix(Color.GREEN,"||  Press a key to change clubs  ||","` 1 2 3 4 5 6 7 8 9 0 - = \ p")
@@ -161,86 +200,66 @@ while (loop == True):
 # received the ESTP string and not the ES16 string.
 
   if (ser.inWaiting() > 0):
-    try: 
-       # pass 1.   Read data + carriage return First data should be the ESTP line.
-       ser.timeout = 0.3
-       pass_cnt = 1
-       read_cnt = ser.inWaiting()
-       data = ser.read(168)
-       ser.timeout = None
-       string_data = data.decode('utf-8')
-       print(f"Pass1 data read: {len(data)}")
-       parsed_data = process_input_string(string_data)
-       print(string_data)
-       # force a 1/2 sleep.
-       # Check to see if we have real data in pass 1.  Indicates that the sleep wasn't long enough.
-       if (parsed_data != None):
-          # This should not happen.
+     # pass 1.   Read data + carriage return First data should be the ESTP line.
+     timeout = 300 # milliseconds.
+     pass_cnt = 1
+     data, retime, rcnt = timed_serial_read(ser, timeout, 168)
+     if (data == None):
+        print("Pass1: String was None, Returned_time: {retime}, Return_Lenght: {rcnt}.  Check")
+        continue  # Loop again
+#       string_data = data.decode('utf-8')
+     print(f"Pass1 data read: {len(data)}")
+     parsed_data = process_input_string(data)
+     print(data)
+
+     # force a 1/2 slee       # Check to see if we have real data in pass 1.  Indicates that the sleep wasn't long enough.
+     if (parsed_data != None):
+        # You should not be here.  This should not happen.
+        print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
+        print("Parsed data2: ",parsed_data)
+        voice.say("Club Speed, "+parsed_data["CS"]+".  Ball Speed, "+parsed_data["BS"])
+        voice.runAndWait()
+        pass_cnt=2
+        ser.flush()
+        # Continue to the while loop. 
+        continue
+
+     # pass 2.  Setup a timed serial reader.  
+     print("Pass1 complete.   Now entering pass2")
+     timeout = 1500 # millisecs. 1.5 secs.
+     data2, retime. rcnt = timed_serial_read(ser, timeout, 168) 
+     if (data2 == None):
+        print("Pass2: String was None, Returned_time: {retime}, Return_Lenght: {rcnt}.  Check")
+        voice.say("Misread shot sequence")
+        voice.runAndWait()
+        ser.flush()
+        continue  # Loop again
+
+     string_data2 = data2   
+     # string_data2 = data2.decode('utf-8')   
+     parsed_data2 = process_input_string(string_data2) 
+     if (parsed_data2 != None):
+          # This should be a normal well struck ball with all the data.
           print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
-          print("Parsed data2: ",parsed_data)
-          voice.say("Club Speed, "+parsed_data["CS"]+".  Ball Speed, "+parsed_data["BS"])
+          print("Parsed data2: ",parsed_data2)
+          voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
           voice.runAndWait()
           pass_cnt=2
           ser.flush()
-          # Continue to the while loop. 
+          break
+     else:
+          pass_cnt = 1
+          voice.say("Misread shot sequence")
+          voice.runAndWait()
+          ser.flush()
           continue
-       # pass 2.  Setup a timed serial reader.  
-       print("Pass1 complete.   Now entering pass2")
-       timeout = 1500 # millisecs. 1.5 secs.
-       data2 = []
-       stime = timeit.default_timer()
-       # Set a timer
-       while(timeit.default_timer() - stime < timeout):
-         if ser.inWaiting():
-            c = b""
-            while True:
-               val = ser.read(1)
-               if val == b"\r" or (timeit.default_timer() - stime >= timeout):
-                  break
-               else:
-                  c += val
-            data2.append(c.decode('utf-8'))
-         if (len("".join(data2)) >= 168):
-            # Break the timer loop.  We have data.
-            break
-       # OK.  We are out of the timed serial read loop. 
-       string_data2 = data2   
-       # string_data2 = data2.decode('utf-8')   
-
-       if (len(string_data2) >= 168):
-         parsed_data2 = process_input_string(string_data2) 
-         if (parsed_data2 != None):
-            print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
-            print("Parsed data2: ",parsed_data2)
-            voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
-            voice.runAndWait()
-            pass_cnt=2
-            ser.flush()
-            break
-         else:
-            pass_cnt = 1
-            break 
-       else:
-         # If we are here, then the 2nd read pass returned something unexpected.
-         print(f"Short data read: {data2}")  
-         break
-       # End of while loop for timer.
-       # if it timed out we should have a fat or misread shot.
-       if (pass_cnt == 2):
-         continue
-       else:
-         voice.say("Misread shot sequence")
-         voice.runAndWait()
-         ser.flush()
-         continue
                    
-    except serial.SerialTimeoutException:
-      ser.timeout=0
-      ser.flush()
-      print("serial read1 timeout")
-      voice.say("Serial read1 timeout!")
-      voice.runAndWait()
-      continue
+     ser.timeout=0
+     ser.flush()
+     print("serial read1 timeout")
+     voice.say("Serial read1 timeout!")
+     voice.runAndWait()
+     continue
         
     # End of pass1 
 # End While (loop)

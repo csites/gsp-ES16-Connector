@@ -240,23 +240,28 @@ while (loop == True):
      # pass 2.  Setup a timed serial reader.  
      print("Pass1 complete.   Now entering pass2")
      timeout = 1500 # millisecs. 1.5 secs.
+     data2 = []
      cnt = 0
      while True:
          if (ser.inWaiting() > 0):
              data2 = ser.read(168)
              break
          else:
+            time.sleep(0.1)
             cnt = cnt + 1
             if (cnt > 10):
                  break
 
-     if (data2 == None):
-        print("Pass2: String was None, Returned_time: {retime}, Return_Lenght: {rcnt}.  Check")
+     if (len(data2) == 0):
+        print("Pass2: String was None.  Check")
         voice.say("Misread shot sequence")
         voice.runAndWait()
         ser.flush()
         continue  # Loop again
-
+     if (len(data2) < 168):
+         print(f"Pass2: String was short in Lenght: {len(data2)} data2={data2}")
+         ser.flush()
+         continue
      string_data2 = data2.decode('utf-8')   
      parsed_data2 = process_input_string(string_data2) 
      if (parsed_data2 != None):

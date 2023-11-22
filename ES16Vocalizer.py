@@ -71,10 +71,9 @@ def process_input_string(input_string):
 
 def timed_serial_read(ser, length, seconds):
 """ 
-  Timed serial read function
-  This fumction reads a serial port upto 168 characters under a specified number of milliseconds.
-  It returns the buffer and the time required to get the buffer.   If it does not reach the 
-  length.
+Timed serial read function
+This fumction reads a serial port upto 168 characters under a specified number of milliseconds.
+It returns the buffer and the time required to get the buffer.   If it does not reach the length.
 """   
     ccnt = 0
     stime = timeit.default_timer()

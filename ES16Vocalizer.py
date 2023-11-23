@@ -202,7 +202,7 @@ while (loop == True):
     continue
 
   ES16string_data = ES16data.decode('utf-8')
-  if (len(ES16string_data == 0)):
+  if (len(ES16string_data) == 0):
       voice.say("Misread shot sequence")
       voice.runAndWait()
       ser.flush()

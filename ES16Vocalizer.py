@@ -199,7 +199,7 @@ while (loop == True):
           try:
               data2 = ser.read(168)
           except serial.SerialTimeoutException:
-              voice.say("Misread shot sequence")
+              voice.say("Timeout pass 2. Misread shot sequence")
               voice.runAndWait()
               ser.flush()
               continue
@@ -218,11 +218,10 @@ while (loop == True):
            voice.runAndWait()
            pass_cnt=2
            ser.flush()
-           break
        else:
            # If we are here, then the 2nd read pass returned something unexpected.
            print(data2)  
-           break
+       continue    
 \
     except serial.SerialTimeoutException:
        ser.timeout=0

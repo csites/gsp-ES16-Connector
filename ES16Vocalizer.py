@@ -180,7 +180,7 @@ while (loop == True):
   if (parsed_ESTPdata != None):
     print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","ERROR. ES16 Data recieved in pass1")
     print(f"pass1. Parsed ESTPdata: {parsed_ESTPdata}")
-    voice.say("Correction!  Club Speed, "+parsed_ESTOdata["CS"]+".  Ball Speed, "+parsed_ESTPdata["BS"])
+    voice.say("Correction!  Club Speed, "+parsed_ESTPdata["CS"]+".  Ball Speed, "+parsed_ESTPdata["BS"])
     voice.runAndWait()
     ser.flush()
     continue

@@ -3,13 +3,14 @@ ES16 VOCALIZER.  An Ernest Sports Vocalizer of Swing Data
 CSITES 2023.  MIT License.
 
 This program reads the Ernest Sports ES16, ES16 Tour Plus, and ES2020
-Untested on the ES2020 or original ES16.  
-Launch monitors (a bluetooth serial device) and parses the data and uses
-the pyttsx3 voice library to say the ball speed and club speed for each 
-suscessfull swing.  Kind of like the Speech Caddy LM.  It reads the keyboard 
-for club selection and will send that to the ES16.  The keys are 
-`1234567890-=\p and corrispond to driver to putter.  Lob wedge places the 
-unit into CHP mode (and all optical mode).  Putter is also pur optical.
+Launch Monitors (Untested on the ES2020 or original ES16).    
+The Launch monitors are a bluetooth serial device and the ES16Vocalizer reads
+parses the data and uses the pyttsx3 voice library to say (vocalize) the ball
+speed and club speed for each suscessfull swing.  It is Kind of like the 
+Speech Caddy LM.  It reads the keyboard for club selection and will send that
+to the ES16.  The keys are `1234567890-=\p and corrispond to driver to putter.
+Lob wedge places the unit into CHP mode (and all optical mode).  Putter is 
+also a pure optical ball tracker.
 
 The ES16 and Tour Plus will miss read if you hit a fat shot and not provide
 data other than ball speed and club speed (pure radar only data). On those
@@ -22,7 +23,7 @@ shot vs a good shot, I use a timer to wait for the second set of data.  if it
 doesn't appear in 1.5s I report it as a misread.  
 
 Note:  I'm using the Windows library msvcrt library for the kbhit() function.
-For linux, the library getch may work.
+For linux, the library getch or cv2 may work but it needs to be non-blocking.
  
 """  
 import re

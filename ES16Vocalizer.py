@@ -172,7 +172,7 @@ while (loop == True):
   # pass 1.   Read data + carriage return First data should be the ESTP line.
   ESTPdata = ser.read(168)
   string_ESTPdata = ESTPdata.decode('utf-8')
-  print(f"Pass1 data read: {len(ESTOdata)}")
+  print(f"Pass1 data read: {len(ESTPdata)}")
   parsed_ESTPdata = process_input_string(string_ESTPdata)
 
 

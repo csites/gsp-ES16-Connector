@@ -1,4 +1,4 @@
-"""
+l"""
 ES16 VOCALIZER.  An Ernest Sports Vocalizer of Swing Data
 CSITES 2023.  MIT License.
 
@@ -202,7 +202,7 @@ while (loop == True):
     continue
 
   ES16string_data = ES16data.decode('utf-8')   
-  parsed_ES16data =  process_input_string(ES16_stringdata) 
+  parsed_ES16data =  process_input_string(ES16string_data) 
   if (parsed_ES16data != None):
       print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
       print("Parsed data2: ",parsed_ES16data)

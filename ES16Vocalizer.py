@@ -1,6 +1,6 @@
 """
 ES16 VOCALIZER.  An Ernest Sports Vocalizer of Swing Data
-CSITES 2023.
+CSITES 2023.  MIT License.
 
 This program reads the Ernest Sports ES16, ES16 Tour Plus, and ES2020
 Untested on the ES2020 or original ES16.  
@@ -167,71 +167,56 @@ while (loop == True):
   # and ESTP string regardless of bad or good shot data.  It only sends the 
   # the second string (ES16) of data if it has good data, so in that case we
   # can only tell a fat shot if the second read pass times out. (about 1.5sec).
-  if (ser.inWaiting() > 0):
-    try: 
-       # pass 1.   Read data + carriage return First data should be the ESTP line.
-       ser.timeout = 0.3
-       pass_cnt = 1
-       data = ser.read(168)
-       ser.timeout = None
-       string_data = data.decode('utf-8')
-       print(f"Pass1 data read: {len(data)}")
-       parsed_data = process_input_string(string_data)
-       print(string_data)
-       # force a 1/2 sleep.
-       # Check to see if we have real data in pass 1.  Indicates that the sleep wasn't long enough.
+
+
+  # pass 1.   Read data + carriage return First data should be the ESTP line.
+  ESTPdata = ser.read(168)
+  string_ESTPdata = ESTPdata.decode('utf-8')
+  print(f"Pass1 data read: {len(ESTOdata)}")
+  parsed_ESTPdata = process_input_string(string_ESTPdata)
+
+
+  # This should not happen unless the pass2 timeout was too short mean more that 1.5 secs.  
+  if (parsed_ESTPdata != None):
+    print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","ERROR. ES16 Data recieved in pass1")
+    print(f"pass1. Parsed ESTPdata: {parsed_ESTPdata}")
+    voice.say("Correction!  Club Speed, "+parsed_ESTOdata["CS"]+".  Ball Speed, "+parsed_ESTPdata["BS"])
+    voice.runAndWait()
+    ser.flush()
+    continue
+
+  print(string_ESTPdata)
   
-       if (parsed_data != None):
-          print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
-          print("Parsed data2: ",parsed_data2)
-          voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
-          voice.runAndWait()
-          pass_cnt=2
-          ser.flush()
-          continue
+  # pass 2. Need to check for the second part fukk ES16 data set.
+  time.sleep(0.75) # Just a little rest time
+  ES16data=b""
 
-       timeout = 1500 # miliisecs. 1.5 secs.
-       stime = timeit.default_timer()
-       # Set a timer
-       time.sleep(0.75)
-       data2 = b""
-       if (ser.inWaiting() > 0): 
-          try:
-              data2 = ser.read(168)
-          except serial.SerialTimeoutException:
-              voice.say("Timeout pass 2. Misread shot sequence")
-              voice.runAndWait()
-              ser.flush()
-              continue
-       if (data2 == b""):
-           voice.say("Misread shot sequence")
-           voice.runAndWait()
-           ser.flush()
-           continue
+  try:
+    ES16data = ser.read(168)
+  except serial.SerialTimeoutException:
+    voice.say("Timeout pass 2. Misread shot sequence")
+    voice.runAndWait()
+    ser.flush()
+    continue
 
-       string_data2 = data2.decode('utf-8')   
-       parsed_data2 =  process_input_string(string_data2) 
-       if (parsed_data != None):
-           print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
-           print("Parsed data2: ",parsed_data2)
-           voice.say("Club Speed, "+parsed_data2["CS"]+".  Ball Speed, "+parsed_data2["BS"])
-           voice.runAndWait()
-           pass_cnt=2
-           ser.flush()
-       else:
-           # If we are here, then the 2nd read pass returned something unexpected.
-           print(data2)  
-       continue    
-\
-    except serial.SerialTimeoutException:
-       ser.timeout=0
-       ser.flush()
-       print("pass1 serial read1 timeout")
-       voice.say("Serial read1 timeout!")
-       voice.runAndWait()
-       continue
+  ES16string_data = ES16data.decode('utf-8')   
+  parsed_ES16data =  process_input_string(ES16_stringdata) 
+  if (parsed_ES16data != None):
+      print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
+      print("Parsed data2: ",parsed_ES16data)
+      voice.say("Club Speed, "+parsed_ES16data["CS"]+".  Ball Speed, "+parsed_ES16data["BS"])
+      voice.runAndWait()
+      ser.flush()
+  else:
+      # If we are here, then the 2nd read pass returned something unexpected.
+      print(ES16data)  
+      voice.say("Timeout pass 2. Misread shot sequence")
+      voice.runAndWait()
+      ser.flush()
+      continue
+  continue    
         
-    # End of pass1 
+  # End of pass1 
 # End While (loop)
 
 voice.stop()    

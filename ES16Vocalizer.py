@@ -168,6 +168,8 @@ while (loop == True):
   # the second string (ES16) of data if it has good data, so in that case we
   # can only tell a fat shot if the second read pass times out. (about 1.5sec).
 
+  while (ser.inWaiting() == 0):  
+      time.sleep(0.1)
 
   # pass 1.   Read data + carriage return First data should be the ESTP line.
   ESTPdata = ser.read(168)

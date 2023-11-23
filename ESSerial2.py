@@ -1,6 +1,6 @@
 import serial
 """ 
-  Timed serial read function
+  Timed serial read function (Doesn't work).
   This fumction reads a serial port upto 168 characters under a specified number of milliseconds.
   It returns the buffer and the time required to get the buffer.   If it does not reach the 
   length

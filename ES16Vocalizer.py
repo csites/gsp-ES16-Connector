@@ -1,4 +1,4 @@
-l"""
+"""
 ES16 VOCALIZER.  An Ernest Sports Vocalizer of Swing Data
 CSITES 2023.  MIT License.
 

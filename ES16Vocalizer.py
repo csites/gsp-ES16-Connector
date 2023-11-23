@@ -201,7 +201,13 @@ while (loop == True):
     ser.flush()
     continue
 
-  ES16string_data = ES16data.decode('utf-8')   
+  ES16string_data = ES16data.decode('utf-8')
+  if (len(ES16string_data == 0)):
+      voice.say("Misread shot sequence")
+      voice.runAndWait()
+      ser.flush()
+      continue
+   
   parsed_ES16data =  process_input_string(ES16string_data) 
   if (parsed_ES16data != None):
       print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved in pass2")
@@ -212,7 +218,7 @@ while (loop == True):
   else:
       # If we are here, then the 2nd read pass returned something unexpected.
       print(ES16data)  
-      voice.say("Timeout pass 2. Misread shot sequence")
+      voice.say("pass 2 partial data. Misread shot sequence")
       voice.runAndWait()
       ser.flush()
       continue

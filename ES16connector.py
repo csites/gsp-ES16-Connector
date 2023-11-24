@@ -367,9 +367,6 @@ def main():
         # Check for the GSPro OpenAPI connector
         print_colored_prefix(Color.GREEN, "GSPro ||", "Connecting to OpenConnect API ({}:{})...".format(HOST, PORT))
         
-        # Initialize 
-        club_speed=ball_speed_last=total_spin_last=spin_axis_last=hla_last=vla_last=club_speed_last=path_angle_last=face_angle_last=angle_of_attack=None
-      
         voice=pyttsx3.init() # Initialize text to speech
         voice.setProperty('rate',265)
         voice.setProperty('voice', 'Microsoft Mary')
@@ -378,7 +375,7 @@ def main():
 
         found = False
         while not found:
-          ser = serial.Serial('COM7', baudrate=115200)
+          ser = serial.Serial('COM7', baudrate=115200,timeout=1.5)
           # Check if the port is open
           if ser.isOpen():
             print_colored_prefix(Color.GREEN, "ES16  ||", "Connecting to ES16 serial port: ({}:{})...".format(COM_PORT, COM_BAUD))
@@ -466,14 +463,14 @@ def main():
             ser.flush()
             continue
         
-          ES16string_data = ES16data.decode('utf-8')
-          if (len(ES16string_data) == 0):
+          ES16string = ES16data.decode('utf-8')
+          if (len(ES16string) == 0):
               voice.say("Misread shot sequence")
               voice.runAndWait()
               ser.flush()
               continue
            
-          Pdata =  process_input_string(ES16string_data)                               
+          Pdata =  process_input_string(ES16string)                               
           if (Pdata != None):
             print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
             print(Pdata)
@@ -512,20 +509,10 @@ def main():
             # Put this shot in the queue
             shot_q.put(message)
             send_shots()
-            
-            ball_speed_last = ball_speed = Pdata["BS"]
-            total_spin_last = total_spin = Pdata["SP"]
-            spin_axis_last = spin_axis = Pdata["SPA"]
-            hla_last = hla = Pdata["DIR"]
-            vla_last = vla = Pdata["LA"]
-            club_speed_last = club_speed = Pdata["BS"]
-            path_angle_last = path_angle = Pdata["CPTH"]
-            face_angle_last = face_angle = Pdata["CFAC"]
-            angle_of_attack_last = angle_of_attack = Pdata["AA"]           
             ser.flush()
             continue
           else: 
-            print(f"I'm confused while parsing: {string_data2}")
+            print(f"I'm confused while parsing: {ES16string_data}")
             voice.say("Misread shot sequence")
             voice.runAndWait() 
             ser.flush()

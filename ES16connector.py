@@ -35,7 +35,7 @@ class Color:
     CYAN = '\033[96m'
     BLUE = '\033[94m'
 
-def print_colored_prefix(color, prefix, message):
+def print_color_prefix(color, prefix, message):
     print(f"{color}{prefix}{Color.RESET}", message)
 
 # Establish a shot Queue
@@ -227,7 +227,7 @@ def process_gspro(resp):
 
                   msg = club_change.encode('ascii') 
                   print_color_prefix(Color.RED, "|| ES16 Change Clubs ||", msg)
-                  print_colored_prefix(Color.GREEN,"|| ES16 Connector    ||", f"Change Club: {gs_to_es[gsp_stat.Club]}, Distance to Pin: {gsp_stat.DistToPin}")
+                  print_color_prefix(Color.GREEN,"|| ES16 Connector    ||", f"Change Club: {gs_to_es[gsp_stat.Club]}, Distance to Pin: {gsp_stat.DistToPin}")
                   ser.write(msg)
        
                   # After club change look for OK.        
@@ -297,7 +297,7 @@ def send_shots():
 
         # Send shot data to gspro. 
         send_shots.sock.sendall(json.dumps(message).encode())
-        print_colored_prefix(Color.GREEN,"ES16 Connector ||", f"Shot {send_shots.shot_count} - Ball: {ball_speed} MPH, Spin: {total_spin} RPM, Axis: {spin_axis}°, HLA: {hla}°, VLA: {vla}°, Club: {club_speed} MPH")
+        print_color_prefix(Color.GREEN,"ES16 Connector ||", f"Shot {send_shots.shot_count} - Ball: {ball_speed} MPH, Spin: {total_spin} RPM, Axis: {spin_axis}°, HLA: {hla}°, VLA: {vla}°, Club: {club_speed} MPH")
         send_shots.shot_count += 1
 
         # Poll politely until there is a message received on the socket
@@ -316,7 +316,7 @@ def send_shots():
             # we have a complete message now, but it may not have our ack yet
             if process_gspro(data):
                 # we got acknowledgement
-                print_colored_prefix(Color.BLUE, "ES16 Connector ||", "Shot data has been sent successfully...")
+                print_color_prefix(Color.BLUE, "ES16 Connector ||", "Shot data has been sent successfully...")
                 send_shots.gspro_connection_notified = False;
                 send_shots.create_socket = False
                 got_ack = True
@@ -329,7 +329,7 @@ def send_shots():
     except Exception as e:
         if EXTRA_DEBUG:
             print(f"send_shots: {e}")
-        print_colored_prefix(Color.RED, "ES16 Connector ||", "No response from GSPRO. Retrying")
+        print_color_prefix(Color.RED, "ES16 Connector ||", "No response from GSPRO. Retrying")
         if not send_shots.gspro_connection_notified:
             chime.error()
             send_shots.gspro_connection_notified = True;
@@ -361,11 +361,11 @@ def main():
                   found = True
                   break
           if not found:
-              print_colored_prefix(Color.RED, "ES16 Connector ||", "GSPconnect.exe is not running. Reset it via GSPRO->Settings->Game->Reset GSPro Connect->Save")
+              print_color_prefix(Color.RED, "ES16 Connector ||", "GSPconnect.exe is not running. Reset it via GSPRO->Settings->Game->Reset GSPro Connect->Save")
               time.sleep(1)
                 
         # Check for the GSPro OpenAPI connector
-        print_colored_prefix(Color.GREEN, "GSPro ||", "Connecting to OpenConnect API ({}:{})...".format(HOST, PORT))
+        print_color_prefix(Color.GREEN, "GSPro ||", "Connecting to OpenConnect API ({}:{})...".format(HOST, PORT))
         
         voice=pyttsx3.init() # Initialize text to speech
         voice.setProperty('rate',265)
@@ -378,13 +378,15 @@ def main():
           ser = serial.Serial('COM7', baudrate=115200,timeout=1.5)
           # Check if the port is open
           if ser.isOpen():
-            print_colored_prefix(Color.GREEN, "ES16  ||", "Connecting to ES16 serial port: ({}:{})...".format(COM_PORT, COM_BAUD))
+            print_color_prefix(Color.GREEN, "ES16  ||", "Connecting to ES16 serial port: ({}:{})...".format(COM_PORT, COM_BAUD))
             found = True
           else:
-            print_colored_prefix(Color.RED, "ES16  ||", "Serial port did not open. Bluetooth setup? Is the ES16 turned on?")
+            print_color_prefix(Color.RED, "ES16  ||", "Serial port did not open. Bluetooth setup? Is the ES16 turned on?")
             timer.sleep(5)
          
         last_sound=0 
+        
+        
         # Check if there is any data to read
         loop=True
         while (loop == True):
@@ -519,7 +521,7 @@ def main():
             continue
         
     except Exception as e:
-        print_colored_prefix(Color.RED, "ES16 Connector ||","An error occurred: {}".format(e))
+        print_color_prefix(Color.RED, "ES16 Connector ||","An error occurred: {}".format(e))
     except KeyboardInterrupt:
         print("Ctrl-C pressed")
 
@@ -532,14 +534,14 @@ def main():
               proc = psutil.Process(proc.pid)
               path=proc.exe()
               proc.terminate()
-              print_colored_prefix(Color.RED, "ES16 Connector ||", "Closed GSPconnect.exe.")
+              print_color_prefix(Color.RED, "ES16 Connector ||", "Closed GSPconnect.exe.")
               break
         except Exception as e:
             print(f"Exception: Failed to close and relaunch GSPconnect.exe. {path} ({e})")
             
         if send_shots.sock:
             send_shots.sock.close()
-            print_colored_prefix(Color.RED, "ES16 Connector ||", "Socket to OpenAPI connection closed...")
+            print_color_prefix(Color.RED, "ES16 Connector ||", "Socket to OpenAPI connection closed...")
         voice.stop()    
         ser.close()
         print("Quit!")

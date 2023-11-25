@@ -514,7 +514,7 @@ def main():
             ser.flush()
             continue
           else: 
-            print(f"I'm confused while parsing: {ES16string_data}")
+            print(f"I'm confused while parsing: {ES16string}")
             voice.say("Misread shot sequence")
             voice.runAndWait() 
             ser.flush()

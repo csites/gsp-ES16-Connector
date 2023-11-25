@@ -375,7 +375,7 @@ def main():
 
         found = False
         while not found:
-          ser = serial.Serial('COM7', baudrate=115200,timeout=1.5)
+          ser = serial.Serial("COM7", 115200,timeout=1.5)
           # Check if the port is open
           if ser.isOpen():
             print_color_prefix(Color.GREEN, "ES16  ||", "Connecting to ES16 serial port: ({}:{})...".format(COM_PORT, COM_BAUD))

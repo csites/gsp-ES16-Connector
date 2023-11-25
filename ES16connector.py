@@ -352,7 +352,7 @@ ES16 Connector for GSPro OpenAPI
 With Voice Caddy like feed back
 """
 def main():
-    try:
+#    try:
         # Check for the GSPro OpenAPI connector
         found = False
         while not found:
@@ -520,14 +520,14 @@ def main():
             ser.flush()
             continue
         
-    except Exception as e:
-        print_color_prefix(Color.RED, "ES16 Connector ||","An error occurred: {}".format(e))
-    except KeyboardInterrupt:
-        print("Ctrl-C pressed")
-
-    finally:
-        # kill and restart the GSPconnector
-        path = 'none'
+#   except Exception as e:
+#        print_color_prefix(Color.RED, "ES16 Connector ||","An error occurred: {}".format(e))
+#    except KeyboardInterrupt:
+#        print("Ctrl-C pressed")
+#
+#    finally:
+#        # kill and restart the GSPconnector
+#        path = 'none'
         try:
           for proc in psutil.process_iter():
             if 'GSPconnect.exe' == proc.name():

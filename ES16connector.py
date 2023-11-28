@@ -262,7 +262,7 @@ def send_shots():
             read_ready, _, _ = select.select([send_shots.sock], [], [], 0)
 
         if len(data) > 0 :
-            #print(f"rec'd when idle:\n{data}")
+            print(f"rec'd when idle:\n{data}")
             process_gspro(data) # don't need return value at this stage But do processes
             # club changes we need to send that that to ES16.
              
@@ -276,7 +276,7 @@ def send_shots():
             return
 
         ball_speed = message['BallData']['Speed']
-        total_spin = message['BallData']['TotalSpin']
+        total_spin = message['BallData']['TotalSpin']q
         spin_axis = message['BallData']['SpinAxis']
         hla= message['BallData']['HLA']
         vla= message['BallData']['VLA']
@@ -449,10 +449,11 @@ def main():
           # and ESTP string regardless of bad or good shot data.  It only sends the 
           # the second string (ES16) of data if it has good data, so in that case we
           # can only tell a fat shot if the second read pass times out. (about 1.5sec).
-                
-          while (ser.inWaiting() == 0):  
+          retry_cnt = 15     
+          while (ser.inWaiting() == 0 and retry_cnt > 0):  
               time.sleep(0.1)
-        
+              retry_cnt = retry_cnt - 1
+              
           # pass 1.   Read data + carriage return First data should be the ESTP line.
           ESTPdata = ser.read(168)
           string_ESTPdata = ESTPdata.decode('utf-8')

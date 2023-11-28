@@ -502,20 +502,20 @@ def main():
               "ShotNumber": 999,
               "APIversion": "1",
               "BallData": {
-                  "Speed": Pdata["BS"],
-                  "SpinAxis": Pdata["SPA"],
-                  "TotalSpin": Pdata["SP"],
-                  "BackSpin": round(Pdata["SP"] * math.cos(math.radians(Pdata["SPA"]))),
-                  "SideSpin": round(Pdata["SP"] * math.sin(math.radians(Pdata["SPA"]))),
-                  "HLA": Pdata["DIR"],
-                  "VLA": Pdata["LA"]
+                  "Speed": float(Pdata["BS"]),
+                  "SpinAxis": float(Pdata["SPA"]),
+                  "TotalSpin": float(Pdata["SP"]),
+                  "BackSpin": round(float(Pdata["SP"]) * math.cos(math.radians(Pdata["SPA"]))),
+                  "SideSpin": round(float(Pdata["SP"]) * math.sin(math.radians(Pdata["SPA"]))),
+                  "HLA": float(Pdata["DIR"]),
+                  "VLA": float(Pdata["LA"])
               },
               "ClubData": {
-                  "Speed": Pdata["BS"],
-                  "AngleOfAttack": Pdata["AA"],
-                  "FaceToTarget": Pdata["CFAC"],
-                  "Path": Pdata["CPTH"],
-                  "Loft": Pdata["SPL"]
+                  "Speed": float(Pdata["BS"]),
+                  "AngleOfAttack": float(Pdata["AA"]),
+                  "FaceToTarget": float(Pdata["CFAC"]),
+                  "Path": float(Pdata["CPTH"]),
+                  "Loft": float(Pdata["SPL"])
               },
               "ShotDataOptions": {
                   "ContainsBallData": True,

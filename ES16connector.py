@@ -352,7 +352,7 @@ ES16 Connector for GSPro OpenAPI
 With Voice Caddy like feed back
 """
 def main():
-#    try:
+    try:
         # Check for the GSPro OpenAPI connector
         found = False
         while not found:
@@ -375,7 +375,7 @@ def main():
 
         found = False
         while not found:
-          ser = serial.Serial("COM7", 115200,timeout=1.5)
+          ser = serial.Serial('COM7', baudrate=115200,timeout=1.5)
           # Check if the port is open
           if ser.isOpen():
             print_color_prefix(Color.GREEN, "ES16  ||", "Connecting to ES16 serial port: ({}:{})...".format(COM_PORT, COM_BAUD))
@@ -384,8 +384,25 @@ def main():
             print_color_prefix(Color.RED, "ES16  ||", "Serial port did not open. Bluetooth setup? Is the ES16 turned on?")
             timer.sleep(5)
          
+# Initialize the OpenAPI with heartbeat.  
         last_sound=0 
-        
+        message = {
+          "DeviceID": "ES16 Tour Plus",
+          "Units": METRIC,
+          "ShotNumber": 0,
+          "APIversion": "1",
+          "BallData": {},
+          "ClubData": {},
+          "ShotDataOptions": {
+              "ContainsBallData": False
+              "ContainsClubData": False,
+              "LaunchMonitorIsReady": True,
+              "LaunchMonitorBallDetected": True,
+              "IsHeartBeat": True
+          }
+        }
+        shot_q.put(message)
+        send_shots()
         
         # Check if there is any data to read
         loop=True
@@ -514,20 +531,20 @@ def main():
             ser.flush()
             continue
           else: 
-            print(f"I'm confused while parsing: {ES16string}")
+            print(f"I'm confused while parsing: {ES16string_data}")
             voice.say("Misread shot sequence")
             voice.runAndWait() 
             ser.flush()
             continue
         
-#   except Exception as e:
-#        print_color_prefix(Color.RED, "ES16 Connector ||","An error occurred: {}".format(e))
-#    except KeyboardInterrupt:
-#        print("Ctrl-C pressed")
-#
-#    finally:
-#        # kill and restart the GSPconnector
-#        path = 'none'
+    except Exception as e:
+        print_color_prefix(Color.RED, "ES16 Connector ||","An error occurred: {}".format(e))
+    except KeyboardInterrupt:
+        print("Ctrl-C pressed")
+
+    finally:
+        # kill and restart the GSPconnector
+        path = 'none'
         try:
           for proc in psutil.process_iter():
             if 'GSPconnect.exe' == proc.name():

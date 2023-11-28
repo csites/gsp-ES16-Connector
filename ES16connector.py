@@ -276,7 +276,7 @@ def send_shots():
             return
 
         ball_speed = message['BallData']['Speed']
-        total_spin = message['BallData']['TotalSpin']q
+        total_spin = message['BallData']['TotalSpin']
         spin_axis = message['BallData']['SpinAxis']
         hla= message['BallData']['HLA']
         vla= message['BallData']['VLA']

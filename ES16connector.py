@@ -453,6 +453,8 @@ def main():
           while (ser.inWaiting() == 0 and retry_cnt > 0):  
               time.sleep(0.1)
               retry_cnt = retry_cnt - 1
+          if retry_cnt == 0:
+              continue
               
           # pass 1.   Read data + carriage return First data should be the ESTP line.
           ESTPdata = ser.read(168)

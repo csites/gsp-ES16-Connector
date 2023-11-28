@@ -394,7 +394,7 @@ def main():
           "BallData": {},
           "ClubData": {},
           "ShotDataOptions": {
-              "ContainsBallData": False
+              "ContainsBallData": False,
               "ContainsClubData": False,
               "LaunchMonitorIsReady": True,
               "LaunchMonitorBallDetected": True,

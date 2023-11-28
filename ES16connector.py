@@ -505,8 +505,8 @@ def main():
                   "Speed": float(Pdata["BS"]),
                   "SpinAxis": float(Pdata["SPA"]),
                   "TotalSpin": float(Pdata["SP"]),
-                  "BackSpin": round(float(Pdata["SP"]) * math.cos(math.radians(Pdata["SPA"]))),
-                  "SideSpin": round(float(Pdata["SP"]) * math.sin(math.radians(Pdata["SPA"]))),
+                  "BackSpin": round(float(Pdata["SP"]) * math.cos(math.radians(float(Pdata["SPA"])))),
+                  "SideSpin": round(float(Pdata["SP"]) * math.sin(math.radians(float(Pdata["SPA"])))),
                   "HLA": float(Pdata["DIR"]),
                   "VLA": float(Pdata["LA"])
               },

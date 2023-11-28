@@ -329,7 +329,7 @@ def send_shots():
     except Exception as e:
         if EXTRA_DEBUG:
             print(f"send_shots: {e}")
-        print_color_prefix(Color.RED, "ES16 Connector ||", "No response from GSPRO. Error: {e}, Retrying")
+        print_color_prefix(Color.RED, "ES16 Connector ||", "No response from GSPRO. Error: {}, Retrying".format(e))
         if not send_shots.gspro_connection_notified:
             chime.error()
             send_shots.gspro_connection_notified = True;

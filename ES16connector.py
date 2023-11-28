@@ -324,6 +324,7 @@ def send_shots():
 
         if not got_ack:
             print("debug: no ack")
+            print(message)
             raise Exception
  
     except Exception as e:
@@ -531,7 +532,7 @@ def main():
             ser.flush()
             continue
           else: 
-            print(f"I'm confused while parsing: {ES16string_data}")
+            print(f"I'm confused while parsing: {ES16string}")
             voice.say("Misread shot sequence")
             voice.runAndWait() 
             ser.flush()

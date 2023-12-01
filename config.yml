@@ -1,7 +1,0 @@
-device_id: 'ES16'
-units: 'Yards'
-club_data: True
-gspro:
-  api_version: 1
-  ip_address: 127.0.0.1
-  port: 921

@@ -262,7 +262,7 @@ def send_shots():
             read_ready, _, _ = select.select([send_shots.sock], [], [], 0)
 
         if len(data) > 0 :
-            #print(f"rec'd when idle:\n{data}")
+            print(f"rec'd when idle:\n{data}")
             process_gspro(data) # don't need return value at this stage But do processes
             # club changes we need to send that that to ES16.
              
@@ -324,12 +324,19 @@ def send_shots():
 
         if not got_ack:
             print("debug: no ack")
+            print(message)
             raise Exception
  
     except Exception as e:
+<<<<<<< HEAD
         # if EXTRA_DEBUG:
         print(f"send_shots: {e}")
         print_color_prefix(Color.RED, "ES16 Connector ||", "No response from GSPRO. Retrying")
+=======
+        if EXTRA_DEBUG:
+            print(f"send_shots: {e}")
+        print_color_prefix(Color.RED, "ES16 Connector ||", "No response from GSPRO. Error: {}, Retrying".format(e))
+>>>>>>> a85a0e6c4755c750306b212967dcfe1ec98b19d1
         if not send_shots.gspro_connection_notified:
             chime.error()
             send_shots.gspro_connection_notified = True;
@@ -394,7 +401,7 @@ def main():
           "BallData": {},
           "ClubData": {},
           "ShotDataOptions": {
-              "ContainsBallData": False
+              "ContainsBallData": False,
               "ContainsClubData": False,
               "LaunchMonitorIsReady": True,
               "LaunchMonitorBallDetected": True,
@@ -448,10 +455,13 @@ def main():
           # and ESTP string regardless of bad or good shot data.  It only sends the 
           # the second string (ES16) of data if it has good data, so in that case we
           # can only tell a fat shot if the second read pass times out. (about 1.5sec).
-                
-          while (ser.inWaiting() == 0):  
+          retry_cnt = 15     
+          while (ser.inWaiting() == 0 and retry_cnt > 0):  
               time.sleep(0.1)
-        
+              retry_cnt = retry_cnt - 1
+          if retry_cnt == 0:
+              continue
+              
           # pass 1.   Read data + carriage return First data should be the ESTP line.
           ESTPdata = ser.read(168)
           string_ESTPdata = ESTPdata.decode('utf-8')
@@ -502,20 +512,20 @@ def main():
               "ShotNumber": 999,
               "APIversion": "1",
               "BallData": {
-                  "Speed": Pdata["BS"],
-                  "SpinAxis": Pdata["SPA"],
-                  "TotalSpin": Pdata["SP"],
-                  "BackSpin": round(Pdata["SP"] * math.cos(math.radians(Pdata["SPA"]))),
-                  "SideSpin": round(Pdata["SP"] * math.sin(math.radians(Pdata["SPA"]))),
-                  "HLA": Pdata["DIR"],
-                  "VLA": Pdata["LA"]
+                  "Speed": float(Pdata["BS"]),
+                  "SpinAxis": float(Pdata["SPA"]),
+                  "TotalSpin": float(Pdata["SP"]),
+                  "BackSpin": round(float(Pdata["SP"]) * math.cos(math.radians(float(Pdata["SPA"])))),
+                  "SideSpin": round(float(Pdata["SP"]) * math.sin(math.radians(float(Pdata["SPA"])))),
+                  "HLA": float(Pdata["DIR"]),
+                  "VLA": float(Pdata["LA"])
               },
               "ClubData": {
-                  "Speed": Pdata["BS"],
-                  "AngleOfAttack": Pdata["AA"],
-                  "FaceToTarget": Pdata["CFAC"],
-                  "Path": Pdata["CPTH"],
-                  "Loft": Pdata["SPL"]
+                  "Speed": float(Pdata["BS"]),
+                  "AngleOfAttack": float(Pdata["AA"]),
+                  "FaceToTarget": float(Pdata["CFAC"]),
+                  "Path": float(Pdata["CPTH"]),
+                  "Loft": float(Pdata["SPL"])
               },
               "ShotDataOptions": {
                   "ContainsBallData": True,
@@ -531,7 +541,7 @@ def main():
             ser.flush()
             continue
           else: 
-            print(f"I'm confused while parsing: {ES16string_data}")
+            print(f"I'm confused while parsing: {ES16string}")
             voice.say("Misread shot sequence")
             voice.runAndWait() 
             ser.flush()

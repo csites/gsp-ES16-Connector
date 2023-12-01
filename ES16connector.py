@@ -193,10 +193,13 @@ gsp_stat.Ready = True
 def process_gspro(resp):
     global putter_in_use
     global gsp_stat
-
+    global voice
+    global ser
+    
     code_200_found = False
 
     jsons = re.split('(\{.*?\})(?= *\{)', resp.decode("utf-8"))
+    print(jsons)
     for this_json in jsons:
         if len(this_json) > 0 :
             print(this_json)
@@ -214,9 +217,10 @@ def process_gspro(resp):
                 # We beed to send the CLub selected to ES16.  But if its a wedge, we need to look at Distance to Target.  If That is < 30 yards, we want to 
                 # to Send club change to 'Chip' mode for pure optical
                 # Send date to Club change to ES16.
-                if (gsp_stat.Club != gs_stat.Club_previous):
-                  voice.say("Changing clubs to "+gsclubs_2voice_mapping[gps_stat.Club][0]+".")
+                if (gsp_stat.Club != gsp_stat.Club_previous):
+                  voice.say("Changing clubs to "+gsclub_2voice_mapping[gsp_stat.Club][0]+".")
                   voice.runAndWait()
+                  gsp_stat.Club_previous = gsp_stat.Club
                   # If we want to check for an external putter application
                   # We might want to do it here, or set a trigger for it  
  
@@ -225,7 +229,7 @@ def process_gspro(resp):
                   else:
                     Club_change = "CLUB"+gs_to_es[gsp_stat.Club]+"LOFT000\r"
 
-                  msg = club_change.encode('ascii') 
+                  msg = Club_change.encode('ascii') 
                   print_color_prefix(Color.RED, "|| ES16 Change Clubs ||", msg)
                   print_color_prefix(Color.GREEN,"|| ES16 Connector    ||", f"Change Club: {gs_to_es[gsp_stat.Club]}, Distance to Pin: {gsp_stat.DistToPin}")
                   ser.write(msg)
@@ -271,35 +275,42 @@ def send_shots():
         try:
             # Extract Data from the shot_q.
             message = shot_q.get_nowait()
+            print(message)
         except Exception as e:
             # No shot to send
             return
-
-        ball_speed = message['BallData']['Speed']
-        total_spin = message['BallData']['TotalSpin']
-        spin_axis = message['BallData']['SpinAxis']
-        hla= message['BallData']['HLA']
-        vla= message['BallData']['VLA']
-        club_speed= message['ClubData']['Speed']
-        path_angle= message['ClubData']['Path']
-        if path_angle == '-':
-            del message['ClubData']['Path']
+        if message['ShotNumber'] !=0:
+            ball_speed = message['BallData']['Speed']
+            total_spin = message['BallData']['TotalSpin']
+            spin_axis = message['BallData']['SpinAxis']
+            hla= message['BallData']['HLA']
+            vla= message['BallData']['VLA']
+            club_speed= message['ClubData']['Speed']
+            path_angle= message['ClubData']['Path']
+            if path_angle == '-':
+                del message['ClubData']['Path']
+                
+            face_angle= message['ClubData']['FaceToTarget']
+            if face_angle == '-':
+                del message['ClubData']['FaceToTarget']
+    
+            message['ShotNumber'] = send_shots.shot_count
+    
+            # Ready to send.  Clear the received flag and send it
+            gsp_stat.ShotReceived = False
+            gsp_stat.Ready = False
+    
+            # Send shot data to gspro. 
+            print(json.dumps(message))
+            send_shots.sock.sendall(json.dumps(message).encode())
+            print_color_prefix(Color.GREEN,"ES16 Connector ||", f"Shot {send_shots.shot_count} - Ball: {ball_speed} MPH, Spin: {total_spin} RPM, Axis: {spin_axis}Â°, HLA: {hla}Â°, VLA: {vla}Â°, Club: {club_speed} MPH")
+            send_shots.shot_count += 1
+        else:
+            # When ShotNumber == 0 send the heartbeat message
+            send_shots.sock.sendall(json.dumps(message).encode())
+            # Apperantly the heartbeat does not reply, so just return.
+            return
             
-        face_angle= message['ClubData']['FaceToTarget']
-        if face_angle == '-':
-            del message['ClubData']['FaceToTarget']
-
-        message['ShotNumber'] = send_shots.shot_count
-
-        # Ready to send.  Clear the received flag and send it
-        gsp_stat.ShotReceived = False
-        gsp_stat.Ready = False
-
-        # Send shot data to gspro. 
-        send_shots.sock.sendall(json.dumps(message).encode())
-        print_color_prefix(Color.GREEN,"ES16 Connector ||", f"Shot {send_shots.shot_count} - Ball: {ball_speed} MPH, Spin: {total_spin} RPM, Axis: {spin_axis}°, HLA: {hla}°, VLA: {vla}°, Club: {club_speed} MPH")
-        send_shots.shot_count += 1
-
         # Poll politely until there is a message received on the socket
         stop_time = time.time() + POLL_TIME # wait for ack
         got_ack = False
@@ -328,15 +339,10 @@ def send_shots():
             raise Exception
  
     except Exception as e:
-<<<<<<< HEAD
+
         # if EXTRA_DEBUG:
         print(f"send_shots: {e}")
         print_color_prefix(Color.RED, "ES16 Connector ||", "No response from GSPRO. Retrying")
-=======
-        if EXTRA_DEBUG:
-            print(f"send_shots: {e}")
-        print_color_prefix(Color.RED, "ES16 Connector ||", "No response from GSPRO. Error: {}, Retrying".format(e))
->>>>>>> a85a0e6c4755c750306b212967dcfe1ec98b19d1
         if not send_shots.gspro_connection_notified:
             chime.error()
             send_shots.gspro_connection_notified = True;
@@ -352,13 +358,16 @@ send_shots.create_socket = True
 send_shots.sock = None
 webcam_window = None
 gspro_window = None
-
+voice = None
+ser = None
 
 """ 
 ES16 Connector for GSPro OpenAPI
 With Voice Caddy like feed back
 """
 def main():
+    global voice
+    global ser
     try:
         # Check for the GSPro OpenAPI connector
         found = False
@@ -398,8 +407,8 @@ def main():
           "Units": METRIC,
           "ShotNumber": 0,
           "APIversion": "1",
-          "BallData": {},
-          "ClubData": {},
+   #       "BallData": {},
+   #       "ClubData": {},
           "ShotDataOptions": {
               "ContainsBallData": False,
               "ContainsClubData": False,
@@ -521,7 +530,7 @@ def main():
                   "VLA": float(Pdata["LA"])
               },
               "ClubData": {
-                  "Speed": float(Pdata["BS"]),
+                  "Speed": float(Pdata["CS"]),
                   "AngleOfAttack": float(Pdata["AA"]),
                   "FaceToTarget": float(Pdata["CFAC"]),
                   "Path": float(Pdata["CPTH"]),
@@ -533,6 +542,10 @@ def main():
                   "LaunchMonitorIsReady": True,
                   "LaunchMonitorBallDetected": True,
                   "IsHeartBeat": False
+              },
+              "Player": {
+                  "Handed": "RH",
+                  "Club": "8I"
               }
             }
             # Put this shot in the queue

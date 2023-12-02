@@ -67,6 +67,7 @@ gsclub_2voice_mapping = {
     "W3": ("3 Wood", "3Wd"),
     "W5": ("5 Wood", "5Wd"),
     "H4": ("4 Hybrid", "4Hy"),
+    "H5": ("5 Hybrid", "5Hy"),
     "I4": ("4 Iron", "4Ir"),
     "I5": ("5 Iron", "5Ir"),
     "I6": ("6 Iron", "6Ir"),
@@ -184,11 +185,12 @@ class c_GSPRO_Status:
     DistToPin = 200
     RollingOut = False
     Club = "DR"
-    Club_previous = "DR"
+    Club_previous = "None"
     
 gsp_stat = c_GSPRO_Status()
 gsp_stat.Putter = False
 gsp_stat.Ready = True
+
 
 def process_gspro(resp):
     global putter_in_use
@@ -249,23 +251,23 @@ def process_gspro(resp):
     
 def send_shots():
     global gsp_stat
-    global send_shots.create_socket
-    global send_shots.sock
+    global send_shots_create_socket
+    global send_shots_socket
     BUFF_SIZE=1024
     POLL_TIME=10   # seconds to wait for shot ack
     
     try:
-        if send_shots.create_socket:
-            send_shots.sock = create_socket_connection(HOST, PORT)
-            send_shots.create_socket = False
+        if send_shots_create_socket:
+            send_shots_socket = create_socket_connection(HOST, PORT)
+            send_shots_create_socket = False
     
         # Check if we recevied any unsollicited messages from GSPRO (e.g. change of club)
-        read_ready, _, _ = select.select([send_shots.sock], [], [], 0)
+        read_ready, _, _ = select.select([send_shots_socket], [], [], 0)
 
         data = bytes(0)
         while read_ready:
-            data = data + send_shots.sock.recv(BUFF_SIZE) # Get GSPro data.
-            read_ready, _, _ = select.select([send_shots.sock], [], [], 0)
+            data = data + send_shots_socket.recv(BUFF_SIZE) # Get GSPro data.
+            read_ready, _, _ = select.select([send_shots_socket], [], [], 0)
 
         if len(data) > 0 :
             print(f"rec'd when idle:\n{data}")
@@ -287,14 +289,14 @@ def send_shots():
             spin_axis = message['BallData']['SpinAxis']
             hla= message['BallData']['HLA']
             vla= message['BallData']['VLA']
-            club_speed= message['ClubData']['Speed']
-            path_angle= message['ClubData']['Path']
-            if path_angle == '-':
-                del message['ClubData']['Path']
-                
-            face_angle= message['ClubData']['FaceToTarget']
-            if face_angle == '-':
-                del message['ClubData']['FaceToTarget']
+            if message['ShotDataOptions']['ContainsClubData']:
+              club_speed= message['ClubData']['Speed']
+              path_angle= message['ClubData']['Path']
+              if path_angle == '-':
+                  del message['ClubData']['Path']
+              face_angle= message['ClubData']['FaceToTarget']
+              if face_angle == '-':
+                  del message['ClubData']['FaceToTarget']
     
             message['ShotNumber'] = send_shots.shot_count
     
@@ -304,12 +306,15 @@ def send_shots():
     
             # Send shot data to gspro. 
             print(json.dumps(message))
-            send_shots.sock.sendall(json.dumps(message).encode())
-            print_color_prefix(Color.GREEN,"ES16 Connector ||", f"Shot {send_shots.shot_count} - Ball: {ball_speed} MPH, Spin: {total_spin} RPM, Axis: {spin_axis}Â°, HLA: {hla}Â°, VLA: {vla}Â°, Club: {club_speed} MPH")
+            send_shots_socket.sendall(json.dumps(message).encode())
+            if message['ShotDataOptions']['ContainsClubData']:
+               print_color_prefix(Color.GREEN,"ES16 Connector ||", f"Shot {send_shots.shot_count} - Ball: {ball_speed} MPH, Spin: {total_spin} RPM, Axis: {spin_axis}Ã‚Â°, HLA: {hla}Ã‚Â°, VLA: {vla}Ã‚Â°, Club: {club_speed} MPH")
+            else:
+                print_color_prefix(Color.GREEN,"ES16 Connector ||", f"Shot {send_shots.shot_count} - Ball: {ball_speed} MPH, Spin: {total_spin} RPM, Axis: {spin_axis}Ã‚Â°, HLA: {hla}Ã‚Â°, VLA: {vla}Ã‚Â°")
             send_shots.shot_count += 1
         else:
             # When ShotNumber == 0 send the heartbeat message
-            send_shots.sock.sendall(json.dumps(message).encode())
+            send_shots_socket.sendall(json.dumps(message).encode())
             # Apperantly the heartbeat does not reply, so just return.
             return
             
@@ -317,21 +322,21 @@ def send_shots():
         stop_time = time.time() + POLL_TIME # wait for ack
         got_ack = False
         while time.time() < stop_time:
-            read_ready, _, _ = select.select([send_shots.sock], [], [], 0)
+            read_ready, _, _ = select.select([send_shots_socket], [], [], 0)
             if not read_ready:
                 continue
             
             data = bytes(0)
             while read_ready:
-                data = data + send_shots.sock.recv(BUFF_SIZE) # Note, we know there's a response now        
-                read_ready, _, _ = select.select([send_shots.sock], [], [], 0)
+                data = data + send_shots_socket.recv(BUFF_SIZE) # Note, we know there's a response now        
+                read_ready, _, _ = select.select([send_shots_socket], [], [], 0)
 
             # we have a complete message now, but it may not have our ack yet
             if process_gspro(data):
                 # we got acknowledgement
                 print_color_prefix(Color.BLUE, "ES16 Connector ||", "Shot data has been sent successfully...")
                 send_shots.gspro_connection_notified = False;
-                send_shots.create_socket = False
+                send_shots_create_socket = False
                 got_ack = True
                 break
 
@@ -349,7 +354,7 @@ def send_shots():
             # If you hear a screem... this is it.
             chime.error()
             send_shots.gspro_connection_notified = True;
-        send_shots.create_socket = True
+        send_shots_create_socket = True
 
     return
     
@@ -357,8 +362,8 @@ def send_shots():
 # Initialize function 'send_shots' static varibles
 send_shots.gspro_connection_notified = False
 send_shots.shot_count = 1
-send_shots.create_socket = True
-send_shots.sock = None
+send_shots_create_socket = True
+send_shots_socket = None
 webcam_window = None
 gspro_window = None
 voice = None
@@ -371,8 +376,8 @@ With Voice Caddy like feed back
 def main():
     global voice
     global ser
-    global send_shots.create_socket
-    global send_shots.sock
+    global send_shots_create_socket
+    global send_shots_socket
     
 
     try:
@@ -465,14 +470,14 @@ def main():
                   print("You pressed key: ",skey)
 
               # Check the socket for a 201 message.
-              if send_shots.create_socket == False:
+              if send_shots_create_socket == False:
                   #  Check if we recevied any unsollicited messages from GSPRO (e.g. change of club)
-                  read_ready, _, _ = select.select([send_shots.sock], [], [], 0)
+                  read_ready, _, _ = select.select([send_shots_socket], [], [], 0)
 
                   data = bytes(0)
                   while read_ready:
-                      data = data + send_shots.sock.recv(BUFF_SIZE) # Get GSPro data.
-                      read_ready, _, _ = select.select([send_shots.sock], [], [], 0)
+                      data = data + send_shots_socket.recv(1024) # Get GSPro data.
+                      read_ready, _, _ = select.select([send_shots_socket], [], [], 0)
                   if len(data) > 0 :
                       print(f"rec'd when idle:\n{data}")
                       process_gspro(data) # don't need return value at this stage But do processes
@@ -505,9 +510,47 @@ def main():
           # This should not happen unless the pass2 timeout was too short mean more that 1.5 secs.   It shouldn't but it does.  
           if (parsed_ESTPdata != None):
             print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","ERROR. ES16 Data recieved in pass1")
+ 
+            ser.flush()
+            # Minimum ball data needed for simulaton would be BS, HLA, VLA.  SP and SPA would be nice to have.
+            keys_to_check = ["BS", "LA", "DIR", "SP", "SPA" ]
+            all_keys_exist = True
+            for key in keys_to_check:
+              if key not in parsed_ESTPdata:
+                all_keys_exist = False
+                break
+            if all_keys_exist:  
+                Pdata = parsed_ESTPdata
+                message = {
+                  "DeviceID": "ES16 Tour Plus",
+                  "Units": METRIC,
+                  "ShotNumber": 999,
+                  "APIversion": "1",
+                  "BallData": {
+                      "Speed": float(Pdata["BS"]),
+                      "SpinAxis": float(Pdata["SPA"]),
+                      "TotalSpin": float(Pdata["SP"]),
+                      "BackSpin": round(float(Pdata["SP"]) * math.cos(math.radians(float(Pdata["SPA"])))),
+                      "SideSpin": round(float(Pdata["SP"]) * math.sin(math.radians(float(Pdata["SPA"])))),
+                      "HLA": float(Pdata["DIR"]),
+                      "VLA": float(Pdata["LA"])
+                  },
+                  "ShotDataOptions": {
+                      "ContainsBallData": True,
+                      "ContainsClubData": False,
+                      "LaunchMonitorIsReady": True,
+                      "LaunchMonitorBallDetected": True,
+                      "IsHeartBeat": False
+                  }
+                }
+                # Put this shot in the queue
+                shot_q.put(message)
+                send_shots()
+              # We need to go-ahead and send the shot data for late data events like this.
             print(f"pass1. Parsed ESTPdata: {parsed_ESTPdata}")
             voice.say("Correction!  Club Speed, "+parsed_ESTPdata["CS"]+".  Ball Speed, "+parsed_ESTPdata["BS"])
             voice.runAndWait()
+
             ser.flush()
             continue
         
@@ -528,7 +571,7 @@ def main():
           # Typical of ESTP (radar) only data.       
           ES16string = ES16data.decode('utf-8')
           if (len(ES16string) == 0):
-              voice.say("Misread shot sequence")
+              voice.say("Mis red shot sequence")
               voice.runAndWait()
               ser.flush()
               continue
@@ -582,7 +625,7 @@ def main():
             continue
           else: 
             print(f"I'm confused while parsing: {ES16string}")
-            voice.say("Misread shot sequence")
+            voice.say("Miss red shot sequence")
             voice.runAndWait() 
             ser.flush()
             continue
@@ -606,8 +649,8 @@ def main():
         except Exception as e:
             print(f"Exception: Failed to close and relaunch GSPconnect.exe. {path} ({e})")
             
-        if send_shots.sock:
-            send_shots.sock.close()
+        if send_shots_socket:
+            send_shots_socket.close()
             print_color_prefix(Color.RED, "ES16 Connector ||", "Socket to OpenAPI connection closed...")
         voice.stop()    
         ser.close()

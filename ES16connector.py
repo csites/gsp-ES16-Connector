@@ -539,8 +539,6 @@ def main():
           if (Pdata != None):
             print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
             print(Pdata)
-            voice.say("Club Speed, "+Pdata["CS"]+".  Ball Speed, "+Pdata["BS"])
-            voice.runAndWait()
           
             message = {
               "DeviceID": "ES16 Tour Plus",
@@ -579,6 +577,8 @@ def main():
             shot_q.put(message)
             send_shots()
             ser.flush()
+            voice.say("Club Speed, "+Pdata["CS"]+".  Ball Speed, "+Pdata["BS"])
+            voice.runAndWait()
             continue
           else: 
             print(f"I'm confused while parsing: {ES16string}")

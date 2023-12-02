@@ -249,6 +249,8 @@ def process_gspro(resp):
     
 def send_shots():
     global gsp_stat
+    global send_shots.create_socket
+    global send_shots.sock
     BUFF_SIZE=1024
     POLL_TIME=10   # seconds to wait for shot ack
     
@@ -369,7 +371,9 @@ With Voice Caddy like feed back
 def main():
     global voice
     global ser
-    global send_shots
+    global send_shots.create_socket
+    global send_shots.sock
+    
 
     try:
         # Check for the GSPro OpenAPI connector

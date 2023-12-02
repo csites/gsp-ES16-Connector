@@ -477,7 +477,7 @@ def main():
                       print(f"rec'd when idle:\n{data}")
                       process_gspro(data) # don't need return value at this stage But do processes
                       # Look for the club changes we need to send that that to ES16.
- 
+                      
            
           # Try to let us know if we hit a fat ball.  This is convoluted due to 
           # how it handles a fat shot vs a good shot (radar with good optical data).  So 

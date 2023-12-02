@@ -369,6 +369,8 @@ With Voice Caddy like feed back
 def main():
     global voice
     global ser
+    global send_shots
+
     try:
         # Check for the GSPro OpenAPI connector
         found = False
@@ -457,7 +459,21 @@ def main():
                   break
                 else:
                   print("You pressed key: ",skey)
-                          
+
+              # Check the socket for a 201 message.
+              if send_shots.create_socket == False:
+                  #  Check if we recevied any unsollicited messages from GSPRO (e.g. change of club)
+                  read_ready, _, _ = select.select([send_shots.sock], [], [], 0)
+
+                  data = bytes(0)
+                  while read_ready:
+                      data = data + send_shots.sock.recv(BUFF_SIZE) # Get GSPro data.
+                      read_ready, _, _ = select.select([send_shots.sock], [], [], 0)
+                  if len(data) > 0 :
+                      print(f"rec'd when idle:\n{data}")
+                      process_gspro(data) # don't need return value at this stage But do processes
+                      # Look for the club changes we need to send that that to ES16.
+ 
            
           # Try to let us know if we hit a fat ball.  This is convoluted due to 
           # how it handles a fat shot vs a good shot (radar with good optical data).  So 
@@ -472,6 +488,7 @@ def main():
               time.sleep(0.1)
               retry_cnt = retry_cnt - 1
           if retry_cnt == 0:
+              # Nothing waiting on the serial port
               continue
               
           # pass 1.   Read data + carriage return First data should be the ESTP line.
@@ -481,7 +498,7 @@ def main():
           parsed_ESTPdata = process_input_string(string_ESTPdata)
         
         
-          # This should not happen unless the pass2 timeout was too short mean more that 1.5 secs.  
+          # This should not happen unless the pass2 timeout was too short mean more that 1.5 secs.   It shouldn't but it does.  
           if (parsed_ESTPdata != None):
             print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","ERROR. ES16 Data recieved in pass1")
             print(f"pass1. Parsed ESTPdata: {parsed_ESTPdata}")
@@ -503,7 +520,8 @@ def main():
             voice.runAndWait()
             ser.flush()
             continue
-        
+ 
+          # Typical of ESTP (radar) only data.       
           ES16string = ES16data.decode('utf-8')
           if (len(ES16string) == 0):
               voice.say("Misread shot sequence")
@@ -511,6 +529,8 @@ def main():
               ser.flush()
               continue
            
+          # Finally we have a full read of radar and optical data. 
+          # Note: Need to find a way to kick the voice into a thread in the background.
           Pdata =  process_input_string(ES16string)                               
           if (Pdata != None):
             print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")

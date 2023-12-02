@@ -279,7 +279,7 @@ def send_shots():
         except Exception as e:
             # No shot to send
             return
-        if message['ShotNumber'] !=0:
+        if message['ShotNumber'] != 0:
             ball_speed = message['BallData']['Speed']
             total_spin = message['BallData']['TotalSpin']
             spin_axis = message['BallData']['SpinAxis']
@@ -344,6 +344,7 @@ def send_shots():
         print(f"send_shots: {e}")
         print_color_prefix(Color.RED, "ES16 Connector ||", "No response from GSPRO. Retrying")
         if not send_shots.gspro_connection_notified:
+            # If you hear a screem... this is it.
             chime.error()
             send_shots.gspro_connection_notified = True;
         send_shots.create_socket = True
@@ -459,11 +460,13 @@ def main():
                           
            
           # Try to let us know if we hit a fat ball.  This is convoluted due to 
-          # how it handles a fat shot vs a good shot.  So if pass == 1, it only 
-          # received the ESTP string and not the ES16 string.  ES16 will always send 
-          # and ESTP string regardless of bad or good shot data.  It only sends the 
-          # the second string (ES16) of data if it has good data, so in that case we
-          # can only tell a fat shot if the second read pass times out. (about 1.5sec).
+          # how it handles a fat shot vs a good shot (radar with good optical data).  So 
+          # if pass == 1, amd it only received the 'ESTP' prefixed string and not the 
+          # 'ES16' prefixed string, the unit has to read until a timeout occurs or and 
+          # 'ES16' prefixed string occurs.  If the ES16 appears, at that point the ES16
+          # LM will always have a good radar and optical measurement of the ball data.
+          # If it only sends the 'ESTP' then it never saw good optical data.  So in that case we
+          # can only assume a fat shot and the read pass will timeout. (about 1.5sec).
           retry_cnt = 15     
           while (ser.inWaiting() == 0 and retry_cnt > 0):  
               time.sleep(0.1)

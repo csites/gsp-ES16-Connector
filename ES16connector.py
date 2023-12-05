@@ -191,7 +191,12 @@ gsp_stat = c_GSPRO_Status()
 gsp_stat.Putter = False
 gsp_stat.Ready = True
 
-
+"""
+Process_gspro.   This function takes data returned from a socket read (what GSPro 
+sends to us) and Decodes the messages.  200 is a standard ACK message that it 
+received our message data and it was properly formated.  201 is an update data
+message, Usually for Club change events. 202 203 and 204 are other messages.
+"""
 def process_gspro(resp):
     global putter_in_use
     global gsp_stat
@@ -226,7 +231,7 @@ def process_gspro(resp):
                   # If we want to check for an external putter application
                   # We might want to do it here, or set a trigger for it  
  
-                  if (gsp_stat.Club == "LW" and  gsp_stat.DistToPin < 40):
+                  if (gsp_stat.Club == "LW" and  gsp_stat.DistToPin <= 40.0):
                     Club_change = "CLUBCHPLOFT000\r"
                   else:
                     Club_change = "CLUB"+gs_to_es[gsp_stat.Club]+"LOFT000\r"
@@ -248,7 +253,13 @@ def process_gspro(resp):
                   
                                             
     return code_200_found
-    
+"""
+send_shots.  This function handles all the communication with the openAPI.  It
+creates a socket if one doesn't exist.  It check for any pending data on the
+socket being sent from GSPro (ie. msg[Code]=200...etc).  It then pulls a message 
+off the shotq  and send it down the pipe to the OpenAPI to GSPro.  It then checks 
+for a return message on the socket, and checks for an ack (msg[Code]=200... etc).  
+"""
 def send_shots():
     global gsp_stat
     global send_shots_create_socket
@@ -359,6 +370,14 @@ def send_shots():
     return
     
 
+""" 
+ES16 Connector for GSPro OpenAPI with voice synthesized feed back.
+Here we are at the main function.  We begin the main function by initializing all of the 
+global variables, search and wait for the OpenAPI to be running.  We open the Ernest Sport 
+serial port (typically COM7) and enable the vocalizer.  We then send an a heartbeat message 
+to the openAPI to wakeit up (which creates the socket connection on the first message). We 
+then proceed to out main loop which continues until we quit or exit.
+"""
 # Initialize function 'send_shots' static varibles
 send_shots.gspro_connection_notified = False
 send_shots.shot_count = 1
@@ -370,8 +389,7 @@ voice = None
 ser = None
 
 """ 
-ES16 Connector for GSPro OpenAPI
-With Voice Caddy like feed back
+MAIN
 """
 def main():
     global voice
@@ -379,7 +397,6 @@ def main():
     global send_shots_create_socket
     global send_shots_socket
     
-
     try:
         # Check for the GSPro OpenAPI connector
         found = False
@@ -432,7 +449,10 @@ def main():
         shot_q.put(message)
         send_shots()
         
-        # Check if there is any data to read
+        # MAIN LOOP:  Check the keyboard for quit or club change option.  Check the serial ports for
+        # data if there is any, read and parse the data and format shot data to jsaon.  Send it up 
+        # to the OpenAPI if there is any.   PLUS we have to deal with the Ernes Sports odd way of 
+        # sending swing data.   
         loop=True
         while (loop == True):
           key = ""
@@ -485,13 +505,16 @@ def main():
                       
            
           # Try to let us know if we hit a fat ball.  This is convoluted due to 
-          # how it handles a fat shot vs a good shot (radar with good optical data).  So 
-          # if pass == 1, amd it only received the 'ESTP' prefixed string and not the 
+          # how it handles a fat shot vs a good shot (ie. radar with good optical data).  So 
+          # if pass == 1, and it only received the 'ESTP' prefixed string and not the 
           # 'ES16' prefixed string, the unit has to read until a timeout occurs or and 
           # 'ES16' prefixed string occurs.  If the ES16 appears, at that point the ES16
-          # LM will always have a good radar and optical measurement of the ball data.
+          # LM will always have a good radar and good optical measurement of the ball data.
           # If it only sends the 'ESTP' then it never saw good optical data.  So in that case we
-          # can only assume a fat shot and the read pass will timeout. (about 1.5sec).
+          # can only assume a fat shot and the read pass will timeout. (about 1.5sec)
+          # Note, this is where the ES16 Audio trigger can be accidntally triggered.  If 
+          # You see several fat ESTP signals with 0 ball speed.  It was likely and false 
+          # audio signal.
           retry_cnt = 15     
           while (ser.inWaiting() == 0 and retry_cnt > 0):  
               time.sleep(0.1)
@@ -556,7 +579,7 @@ def main():
         
           print(string_ESTPdata)
           
-          # pass 2. Need to check for the second part fukk ES16 data set.
+          # pass 2. Need to check for the second part of the ES16 data set.
           time.sleep(0.75) # Just a little rest time
           ES16data=b""
         
@@ -582,7 +605,7 @@ def main():
           if (Pdata != None):
             print_color_prefix(Color.YELLOW, "||  ES16 SERIAL LINE READ/PARSE  ||","Data recieved")
             print(Pdata)
-          
+            # Here is your main data we send to the OpenAPI.          
             message = {
               "DeviceID": "ES16 Tour Plus",
               "Units": METRIC,
@@ -636,7 +659,7 @@ def main():
         print("Ctrl-C pressed")
 
     finally:
-        # kill and restart the GSPconnector
+        # Exit from loop. End the GSPconnector and closr the serial ports.  We are done.
         path = 'none'
         try:
           for proc in psutil.process_iter():

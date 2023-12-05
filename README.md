@@ -9,10 +9,13 @@ This is a connector application that connects to the GSPro Golf Simulator's Open
 The ES16 uses dual optical and quad aperture Doppler radar and does the following; radar is responsible for Ball Speed and Club Speed.  The optical systems are responsible for Club face angle, club path, ball spin, side spin, launch angle, etc.  The ES2020 is purely an optical system.
 There are some issues I'm still trying to understand. 1) The all-optical CHP mode generates good ball data but only after issuing a miss-read. 2) On a rare occasion, the COM7 port will not be available indicating the ES16 Bluetooth has unpaired (usually at startup).  To solve this run the ES16 range app and re-pair the connection.  I'm looking for a Bluetooth Python code that can check the pairing status and initiate pairing if needed. 
  <p>
-step1) Turn on your ES16.  Run GSPro with OpenAPI selected for LM.  With OpenAPI panel open Run:   
+step1) Turn on your ES16.
+</p><p>  
+step2) Run GSPro with OpenAPI selected for LM.  With the OpenAPI panel open, run:   
 </p><p>
 step2) python ES16Connector.py 
 </p><p>
+When connected, the OpenAPI panel will change from a red border to a green border. 
 You may need a few libraries installed to run.  
 Special Python libraries: 
 python -m pip install pyttsx3 pyserial timeit msvcrt chime 

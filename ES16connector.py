@@ -88,7 +88,7 @@ if AUDIBLE_READY is None:
 if PUTTING_MODE is None:
     PUTTING_MODE = 0;     # 1 means enable webcam server  
 if PUTTING_OPTIONS is None:
-    PUTTING_OPTIONS = 1   # Let Alexx control his own window
+    PUTTING_OPTIONS = 1   # Let Alexx control it's own window
     
 # Setup the GSPro status variable
 class c_GSPRO_Status:
@@ -205,11 +205,11 @@ So this is pulled right out of
 class PuttServer(threading.Thread):
     def run(self):
         self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler)
-        print_colored_prefix(Color.GREEN, "Putting Server ||", "Started.  Use ball_tracking from https://github.com/alleexx/cam-putting-py")
+        print_color_prefix(Color.GREEN, "Putting Server ||", "Started.  Use ball_tracking from https://github.com/alleexx/cam-putting-py")
         self.server.serve_forever()
-        print_colored_prefix(Color.RED, "Putting Server ||", "Stopped")
+        print_color_prefix(Color.RED, "Putting Server ||", "Stopped")
     def stop(self):
-        print_colored_prefix(Color.RED, "Putting Server ||", "Shutting down")
+        print_color_prefix(Color.RED, "Putting Server ||", "Shutting down")
         self.server.shutdown()
 
 class PuttHandler(BaseHTTPRequestHandler):
@@ -247,7 +247,7 @@ class PuttHandler(BaseHTTPRequestHandler):
 
         else:
             if not gsp_stat.Putter:
-                print_colored_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
+                print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
             response_code = 500
             message = '{"result" : "ERROR"}'
         self.send_response_only(response_code) # how to quiet this console message?
@@ -320,7 +320,7 @@ def process_gspro(resp):
                 if PUTTING_MODE != 0:
                     if msg['Player']['Club'] == "PT":
                         if not gsp_stat.Putter:
-                            print_colored_prefix(Color.GREEN, "ES16 Connector ||", "Putting Mode")
+                            print_color_prefix(Color.GREEN, "ES16 Connector ||", "Putting Mode")
                             gsp_stat.Putter = True
                         if PUTTING_MODE ==1 and PUTTING_OPTIONS != 1 and webcam_window is not None and gspro_window is not None:
                             # Pop up putting window on putt?
@@ -331,7 +331,7 @@ def process_gspro(resp):
                                 if not app_dialog.has_focus():
                                     app_dialog.set_focus()
                             except Exception as e:
-                                print_colored_prefix(Color.RED, "ES16 Connector ||", "Unable to find Putting View window")
+                                print_color_prefix(Color.RED, "ES16 Connector ||", "Unable to find Putting View window")
                                 if EXTRA_DEBUG == 1:
                                     print(f"Exception: {e}")
                                     for win in pywinauto.findwindows.find_elements():
@@ -339,7 +339,7 @@ def process_gspro(resp):
                                             print(str(win))
                     else:
                         if gsp_stat.Putter:
-                            print_colored_prefix(Color.GREEN, "ES16 Connector ||", "Full-shot Mode")
+                            print_color_prefix(Color.GREEN, "ES16 Connector ||", "Full-shot Mode")
                             gsp_stat.Putter = False
                         if PUTTING_MODE == 1 and PUTTING_OPTIONS != 1 and webcam_window is not None and gspro_window is not None:
                             try:
@@ -349,7 +349,7 @@ def process_gspro(resp):
                                 if not app_dialog.has_focus():
                                     app_dialog.set_focus()
                             except Exception as e:
-                                print_colored_prefix(Color.RED, "ES16 Connector ||", "Unable to find GSPRO window")
+                                print_color_prefix(Color.RED, "ES16 Connector ||", "Unable to find GSPRO window")
                                 if EXTRA_DEBUG == 1:
                                     print(f"Exception: {e}")
                                     for win in pywinauto.findwindows.find_elements():

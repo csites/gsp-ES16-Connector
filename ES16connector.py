@@ -203,7 +203,7 @@ giving the option to use Alexx's putting code (or my own) is a good option.
 So this is pulled right out of 
 """
 class PuttServer(threading.Thread):
-    def run(self):
+    def start(self):
         self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler)
         print_color_prefix(Color.GREEN, "Putting Server ||", "Started.  Use ball_tracking from https://github.com/alleexx/cam-putting-py")
         self.server.serve_forever()

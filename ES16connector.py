@@ -1,5 +1,5 @@
-# ES16 to GSPro OpenAPI connector.  V 0.3
-# Csites 2023
+# ES16 to GSPro OpenAPI connector.  V 0.4
+# Csites 2023.   Added, Alexx's putt server.
 
 import time
 import sys
@@ -8,6 +8,7 @@ import json
 import math
 import re
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+import threading
 from queue import Queue
 import select
 import psutil
@@ -17,6 +18,7 @@ import msvcrt
 import pyttsx3
 import socket
 import serial
+import pywinauto
 
 # To talk to GSPro OpenAPI
 def create_socket_connection(host, port):
@@ -40,6 +42,68 @@ def print_color_prefix(color, prefix, message):
 
 # Establish a shot Queue
 shot_q = Queue()
+
+# Load settings.json and setup environment.
+def load_settings():
+    fname = "settings.json"
+    if len(sys.argv) > 1 :
+        fname = sys.argv[1]
+        if os.path.exists(fname):    
+            print(f"Using settings from: {fname}")
+        else:
+            print(f"Can't locate specified settings file: {sys.argv[1]}")
+            sys.exit(1)
+            
+    with open(os.path.join(os.getcwd(), fname), "r") as file:
+        lines = file.readlines()
+        cleaned_lines = [line.split("//")[0].strip() for line in lines if not line.strip().startswith("//")]
+        cleaned_json = "\n".join(cleaned_lines)
+        settings = json.loads(cleaned_json)
+    return settings
+
+#load settings from settings.json
+settings = load_settings()
+
+# Host and port of GSPro OpenAPI
+HOST = settings.get("HOST")
+PORT = settings.get("PORT")
+# METRIC = "Metric" or "Yards"
+METRIC = settings.get("METRIC")
+EXTRA_DEBUG = settings.get("EXTRA_DEBUG")
+COM_PORT = settings.get("COM_PORT")
+COM_BAUD = settings.get("COM_BAUD")
+# Audible Read signal.
+AUDIBLE_READY = settings.get("AUDIBLE_READY")
+PUTTING_MODE = settings.get("PUTT_MODE") # 0 = Native ES16, 1=Alexx Putt server
+PUTTING_OPTIONS = settings.get("PUTT_OPTIONS") # 0 means we control the windows
+
+if PORT is None:
+    PORT=921
+if HOST is None:
+    HOST="127.0.0.1"
+if METRIC is None:
+    METRIC="Yards"
+if AUDIBLE_READY is None:
+    AUDIBLE_READY="YES"
+if PUTTING_MODE is None:
+    PUTTING_MODE = 0;     # 1 means enable webcam server  
+if PUTTING_OPTIONS is None:
+    PUTTING_OPTIONS = 1   # Let Alexx control his own window
+    
+# Setup the GSPro status variable
+class c_GSPRO_Status:
+    Ready = True
+    ShotReceived = False
+    ReadyTime = 0
+    Putter = False
+    DistToPin = 200
+    RollingOut = False
+    Club = "DR"
+    Club_previous = "None"
+    
+gsp_stat = c_GSPRO_Status()
+gsp_stat.Putter = False
+gsp_stat.Ready = True
 
 # Key/value arrays for club selection routines.
 ES_gsp_Clubs="Drv DR, 3Wd W2, 3Wd W3, 4Wd W4, 5Wd W5, 7Wd W7, 7Wd W6, 2Hy H2, 3Hy H3, 4Hy H4, 5Hy H7, 5Hy H6, 5Hy H5, 2Ir I2, 2Ir I1, 3Ir I3, 4Ir I4, 5Ir I5, 6Ir I6,  7Ir I7, 8Ir I8, 9Ir I9, Ptw PW, Gpw GW, Sdw SW, Ldw LW, Chp LW, Ptt PT"
@@ -132,64 +196,65 @@ def process_input_string(input_string):
 
     return mydict
 
+"""
+After some initial testing with the ES16, There exxists an issue with it's putting.
+The ES16 dows putting OK but it does not work well for shot putts.  So I thing
+giving the option to use Alexx's putting code (or my own) is a good option.
+So this is pulled right out of 
+"""
+class PuttServer(threading.Thread):
+    def run(self):
+        self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler)
+        print_colored_prefix(Color.GREEN, "Putting Server ||", "Started.  Use ball_tracking from https://github.com/alleexx/cam-putting-py")
+        self.server.serve_forever()
+        print_colored_prefix(Color.RED, "Putting Server ||", "Stopped")
+    def stop(self):
+        print_colored_prefix(Color.RED, "Putting Server ||", "Shutting down")
+        self.server.shutdown()
 
+class PuttHandler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        length = int(self.headers.get('content-length'))
+        if length > 0 and gsp_stat.Putter:
+            response_code = 200
+            message = '{"result" : "OK"}'
+            res = json.loads(self.rfile.read(length))
 
+            putt = {
+                "DeviceID": "Rapsodo ES16",
+                "Units": METRIC,
+                "ShotNumber": 99,
+                "APIversion": "1",
+                "ShotDataOptions": {
+                    "ContainsBallData": True,
+                    "ContainsClubData": True,
+                    "LaunchMonitorIsReady": True,
+                    "LaunchMonitorBallDetected": True,
+                    "IsHeartBeat": False
+                }
+            }
+            putt['BallData'] = {}
+            putt['BallData']['Speed'] = float(res['ballData']['BallSpeed'])
+            putt['BallData']['TotalSpin'] = float(res['ballData']['TotalSpin'])
+            putt['BallData']['SpinAxis'] = 0
+            putt['BallData']['HLA'] = float(res['ballData']['LaunchDirection'])
+            putt['BallData']['VLA'] = 0
+            putt['ClubData'] = {}
+            putt['ClubData']['Speed'] = float(res['ballData']['BallSpeed'])
+            putt['ClubData']['Path'] = '-'
+            putt['ClubData']['FaceToTarget'] = '-'
+            shot_q.put(putt)
 
-# Load settings.json and setup environment.
-def load_settings():
-    fname = "settings.json"
-    if len(sys.argv) > 1 :
-        fname = sys.argv[1]
-        if os.path.exists(fname):    
-            print(f"Using settings from: {fname}")
         else:
-            print(f"Can't locate specified settings file: {sys.argv[1]}")
-            sys.exit(1)
-            
-    with open(os.path.join(os.getcwd(), fname), "r") as file:
-        lines = file.readlines()
-        cleaned_lines = [line.split("//")[0].strip() for line in lines if not line.strip().startswith("//")]
-        cleaned_json = "\n".join(cleaned_lines)
-        settings = json.loads(cleaned_json)
-    return settings
+            if not gsp_stat.Putter:
+                print_colored_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
+            response_code = 500
+            message = '{"result" : "ERROR"}'
+        self.send_response_only(response_code) # how to quiet this console message?
+        self.end_headers()
+        self.wfile.write(str.encode(message))
 
-#load settings from settings.json
-settings = load_settings()
 
-# Host and port of GSPro OpenAPI
-HOST = settings.get("HOST")
-PORT = settings.get("PORT")
-# METRIC = "Metric" or "Yards"
-METRIC = settings.get("METRIC")
-EXTRA_DEBUG = settings.get("EXTRA_DEBUG")
-COM_PORT = settings.get("COM_PORT")
-COM_BAUD = settings.get("COM_BAUD")
-# Audible Read signal.
-AUDIBLE_READY = settings.get("AUDIBLE_READY")
-
-if PORT is None:
-    PORT=921
-if HOST is None:
-    HOST="127.0.0.1"
-if METRIC is None:
-    METRIC="Yards"
-if AUDIBLE_READY is None:
-    AUDIBLE_READY="YES"
-
-# Setup the GSPro status variable
-class c_GSPRO_Status:
-    Ready = True
-    ShotReceived = False
-    ReadyTime = 0
-    Putter = False
-    DistToPin = 200
-    RollingOut = False
-    Club = "DR"
-    Club_previous = "None"
-    
-gsp_stat = c_GSPRO_Status()
-gsp_stat.Putter = False
-gsp_stat.Ready = True
 
 """
 Process_gspro.   This function takes data returned from a socket read (what GSPro 
@@ -250,9 +315,49 @@ def process_gspro(resp):
                   string_data = data.decode('utf-8')
                   print("Expect: "+string_data)
                   ser.flush()
-                  
+
+                # Check to see how we handle putting.
+                if PUTTING_MODE != 0:
+                    if msg['Player']['Club'] == "PT":
+                        if not gsp_stat.Putter:
+                            print_colored_prefix(Color.GREEN, "ES16 Connector ||", "Putting Mode")
+                            gsp_stat.Putter = True
+                        if PUTTING_MODE ==1 and PUTTING_OPTIONS != 1 and webcam_window is not None and gspro_window is not None:
+                            # Pop up putting window on putt?
+                            try:
+                                app = pywinauto.Application()
+                                app.connect(handle=webcam_window)
+                                app_dialog = app.top_window()
+                                if not app_dialog.has_focus():
+                                    app_dialog.set_focus()
+                            except Exception as e:
+                                print_colored_prefix(Color.RED, "ES16 Connector ||", "Unable to find Putting View window")
+                                if EXTRA_DEBUG == 1:
+                                    print(f"Exception: {e}")
+                                    for win in pywinauto.findwindows.find_elements():
+                                        if 'PUTTING VIEW' in str(win).upper():
+                                            print(str(win))
+                    else:
+                        if gsp_stat.Putter:
+                            print_colored_prefix(Color.GREEN, "ES16 Connector ||", "Full-shot Mode")
+                            gsp_stat.Putter = False
+                        if PUTTING_MODE == 1 and PUTTING_OPTIONS != 1 and webcam_window is not None and gspro_window is not None:
+                            try:
+                                app = pywinauto.Application()
+                                app.connect(handle=gspro_window)
+                                app_dialog = app.top_window()
+                                if not app_dialog.has_focus():
+                                    app_dialog.set_focus()
+                            except Exception as e:
+                                print_colored_prefix(Color.RED, "ES16 Connector ||", "Unable to find GSPRO window")
+                                if EXTRA_DEBUG == 1:
+                                    print(f"Exception: {e}")
+                                    for win in pywinauto.findwindows.find_elements():
+                                        if 'GSPRO' in str(win).upper():
+                                            print(str(win))
                                             
     return code_200_found
+
 """
 send_shots.  This function handles all the communication with the openAPI.  It
 creates a socket if one doesn't exist.  It check for any pending data on the
@@ -396,7 +501,7 @@ def main():
     global ser
     global send_shots_create_socket
     global send_shots_socket
-    
+    global gsp_stat    
     try:
         # Check for the GSPro OpenAPI connector
         found = False
@@ -502,8 +607,14 @@ def main():
                       print(f"rec'd when idle:\n{data}")
                       process_gspro(data) # don't need return value at this stage But do processes
                       # Look for the club changes we need to send that that to ES16.
-                      
-           
+
+          # If we are putting with Alexx's putt server We don't need to read the serial port
+          # So just flush the serial port and continue           
+          if PUTT_MODE == 1:
+            if gsp.stat.Putter == True:
+              ser.flush()
+              continue
+                         
           # Try to let us know if we hit a fat ball.  This is convoluted due to 
           # how it handles a fat shot vs a good shot (ie. radar with good optical data).  So 
           # if pass == 1, and it only received the 'ESTP' prefixed string and not the 
@@ -513,7 +624,7 @@ def main():
           # If it only sends the 'ESTP' then it never saw good optical data.  So in that case we
           # can only assume a fat shot and the read pass will timeout. (about 1.5sec)
           # Note, this is where the ES16 Audio trigger can be accidntally triggered.  If 
-          # You see several fat ESTP signals with 0 ball speed.  It was likely and false 
+          # You see several fat ESTP signals with 0 ball speed.  It was likely a false 
           # audio signal.
           retry_cnt = 15     
           while (ser.inWaiting() == 0 and retry_cnt > 0):  
@@ -681,6 +792,9 @@ def main():
 
 
 if __name__ == "__main__":
+    putt_server = PuttServer()
+    if PUTTING_MODE == 1:
+        putt_server.start()
     time.sleep(1)
     main()
 

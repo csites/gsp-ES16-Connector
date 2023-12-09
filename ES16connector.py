@@ -611,7 +611,7 @@ def main():
           # If we are putting with Alexx's putt server We don't need to read the serial port
           # So just flush the serial port and continue           
           if PUTTING_MODE == 1:
-            if gsp.stat.Putter == True:
+            if gsp_stat.Putter == True:
               ser.flush()
               continue
                          

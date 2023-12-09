@@ -355,7 +355,7 @@ def process_gspro(resp):
                                     for win in pywinauto.findwindows.find_elements():
                                         if 'GSPRO' in str(win).upper():
                                             print(str(win))
-                                            
+    print("Exit process_gspro()")                                            
     return code_200_found
 
 """
@@ -765,7 +765,7 @@ def main():
             continue
         
     except Exception as e:
-        print_color_prefix(Color.RED, "ES16 Connector ||","An error occurred: {}".format(e))
+        print_color_prefix(Color.RED, "ES16 Connector ||","An error occurred in main before line 768: {}".format(e))
     except KeyboardInterrupt:
         print("Ctrl-C pressed")
 

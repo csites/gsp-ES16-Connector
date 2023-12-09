@@ -74,8 +74,8 @@ COM_PORT = settings.get("COM_PORT")
 COM_BAUD = settings.get("COM_BAUD")
 # Audible Read signal.
 AUDIBLE_READY = settings.get("AUDIBLE_READY")
-PUTTING_MODE = settings.get("PUTT_MODE") # 0 = Native ES16, 1=Alexx Putt server
-PUTTING_OPTIONS = settings.get("PUTT_OPTIONS") # 0 means we control the windows
+PUTTING_MODE = settings.get("PUTTING_MODE") # 0 = Native ES16, 1=Alexx Putt server
+PUTTING_OPTIONS = settings.get("PUTTING_OPTIONS") # 0 means we control the windows
 
 if PORT is None:
     PORT=921
@@ -610,7 +610,7 @@ def main():
 
           # If we are putting with Alexx's putt server We don't need to read the serial port
           # So just flush the serial port and continue           
-          if PUTT_MODE == 1:
+          if PUTTING_MODE == 1:
             if gsp.stat.Putter == True:
               ser.flush()
               continue

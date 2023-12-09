@@ -318,7 +318,7 @@ def process_gspro(resp):
 
                 # Check to see how we handle putting.
                 if PUTTING_MODE != 0:
-                    if msg['Player']['Club'] == "PT":
+                    if gsp_stat.Club == "PT":
                         if not gsp_stat.Putter:
                             print_color_prefix(Color.GREEN, "ES16 Connector ||", "Putting Mode")
                             gsp_stat.Putter = True

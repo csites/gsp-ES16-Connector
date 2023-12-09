@@ -794,7 +794,7 @@ def main():
 if __name__ == "__main__":
     putt_server = PuttServer()
     if PUTTING_MODE == 1:
-        putt_server.start()
+        putt_server.run()
     time.sleep(1)
     main()
 

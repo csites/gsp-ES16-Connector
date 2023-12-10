@@ -20,30 +20,9 @@ import socket
 import serial
 import pywinauto
 
-# To talk to GSPro OpenAPI
-def create_socket_connection(host, port):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_address = (host, port)
-    sock.connect(server_address)
-    sock.settimeout(5)
-    return sock
-    
-# Color pretty print    
-class Color:
-    RESET = '\033[0m'
-    RED = '\033[91m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    CYAN = '\033[96m'
-    BLUE = '\033[94m'
-
-def print_color_prefix(color, prefix, message):
-    print(f"{color}{prefix}{Color.RESET}", message)
-
-# Establish a shot Queue
-shot_q = Queue()
-
-# Load settings.json and setup environment.
+"""
+Load settings.json and setup environment.  
+"""
 def load_settings():
     fname = "settings.json"
     if len(sys.argv) > 1 :
@@ -75,7 +54,7 @@ COM_BAUD = settings.get("COM_BAUD")
 # Audible Read signal.
 AUDIBLE_READY = settings.get("AUDIBLE_READY")
 PUTTING_MODE = settings.get("PUTTING_MODE") # 0 = Native ES16, 1=Alexx Putt server
-PUTTING_OPTIONS = settings.get("PUTTING_OPTIONS") # 0 means we control the windows
+PUTTING_WINDOW_CONTROL = settings.get("PUTTING_WINDOW_CONTROL") # 0 means we control the windows
 
 if PORT is None:
     PORT=921
@@ -87,8 +66,8 @@ if AUDIBLE_READY is None:
     AUDIBLE_READY="YES"
 if PUTTING_MODE is None:
     PUTTING_MODE = 0;     # 1 means enable webcam server  
-if PUTTING_OPTIONS is None:
-    PUTTING_OPTIONS = 1   # Let Alexx control it's own window
+if PUTTING_WINDOW_CONTROL is None:
+    PUTTING_WINDOW_CONTROL = 0   # Let Alexx control it's own window
     
 # Setup the GSPro status variable
 class c_GSPRO_Status:
@@ -104,6 +83,29 @@ class c_GSPRO_Status:
 gsp_stat = c_GSPRO_Status()
 gsp_stat.Putter = False
 gsp_stat.Ready = True
+
+# To talk to GSPro OpenAPI
+def create_socket_connection(host, port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_address = (host, port)
+    sock.connect(server_address)
+    sock.settimeout(5)
+    return sock
+    
+# Color pretty print    
+class Color:
+    RESET = '\033[0m'
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    CYAN = '\033[96m'
+    BLUE = '\033[94m'
+
+def print_color_prefix(color, prefix, message):
+    print(f"{color}{prefix}{Color.RESET}", message)
+
+# Establish a shot Queue
+shot_q = Queue()
 
 # Key/value arrays for club selection routines.
 ES_gsp_Clubs="Drv DR, 3Wd W2, 3Wd W3, 4Wd W4, 5Wd W5, 7Wd W7, 7Wd W6, 2Hy H2, 3Hy H3, 4Hy H4, 5Hy H7, 5Hy H6, 5Hy H5, 2Ir I2, 2Ir I1, 3Ir I3, 4Ir I4, 5Ir I5, 6Ir I6,  7Ir I7, 8Ir I8, 9Ir I9, Ptw PW, Gpw GW, Sdw SW, Ldw LW, Chp LW, Ptt PT"
@@ -202,16 +204,6 @@ The ES16 dows putting OK but it does not work well for shot putts.  So I thing
 giving the option to use Alexx's putting code (or my own) is a good option.
 So this is pulled right out of 
 """
-class PuttServer(threading.Thread):
-    def start(self):
-        self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler)
-        print_color_prefix(Color.GREEN, "Putting Server ||", "Started.  Use ball_tracking from https://github.com/alleexx/cam-putting-py")
-        self.server.serve_forever()
-        print_color_prefix(Color.RED, "Putting Server ||", "Stopped")
-    def stop(self):
-        print_color_prefix(Color.RED, "Putting Server ||", "Shutting down")
-        self.server.shutdown()
-
 class PuttHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         length = int(self.headers.get('content-length'))
@@ -221,7 +213,7 @@ class PuttHandler(BaseHTTPRequestHandler):
             res = json.loads(self.rfile.read(length))
 
             putt = {
-                "DeviceID": "Rapsodo ES16",
+                "DeviceID": "ES16 Tour Plus",
                 "Units": METRIC,
                 "ShotNumber": 99,
                 "APIversion": "1",
@@ -254,7 +246,34 @@ class PuttHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(str.encode(message))
 
+"""
+PuttServer.   This is an http server to process an Allexx type putting applicatoin.
+It runs a the server as a thread in the background which waits for data on the http
+port 8888.  The putt application passws it data via json encoded data, which is 
+put into the shotq. 
+"""
+class PuttServer(threading.Thread):
+    def run(self):
+        self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler)
+        print_color_prefix(Color.GREEN, "Putting Server ||", "Starting. Use ball_tracking from https://github.com/alleexx/cam-putting-py")
+        server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        server_thread.start()
+#        # ... your code here ...
+#        print_color_prefix(Color.RED, "Putting Server ||", "Stopping")
+#        self.server.shutdown()
 
+    def stop(self):
+        print_color_prefix(Color.RED, "Putting Server ||", "Shutting down")
+        self.server.shutdown()
+
+#    def run(self):
+#        self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler)
+#        print_color_prefix(Color.GREEN, "Putting Server ||", "Started.  Use ball_tracking from https://github.com/alleexx/cam-putting-py")
+#        self.server.serve_forever()
+#        print_color_prefix(Color.RED, "Putting Server ||", "Stopped")
+#    def stop(self):
+#        print_color_prefix(Color.RED, "Putting Server ||", "Shutting down")
+#        self.server.shutdown()
 
 """
 Process_gspro.   This function takes data returned from a socket read (what GSPro 
@@ -322,7 +341,7 @@ def process_gspro(resp):
                         if not gsp_stat.Putter:
                             print_color_prefix(Color.GREEN, "ES16 Connector ||", "Putting Mode")
                             gsp_stat.Putter = True
-                        if PUTTING_MODE ==1 and PUTTING_OPTIONS != 1 and webcam_window is not None and gspro_window is not None:
+                        if PUTTING_MODE ==1 and PUTTING_WINDOW_CONTROL != 0 and webcam_window is not None and gspro_window is not None:
                             # Pop up putting window on putt?
                             try:
                                 app = pywinauto.Application()
@@ -341,7 +360,7 @@ def process_gspro(resp):
                         if gsp_stat.Putter:
                             print_color_prefix(Color.GREEN, "ES16 Connector ||", "Full-shot Mode")
                             gsp_stat.Putter = False
-                        if PUTTING_MODE == 1 and PUTTING_OPTIONS != 1 and webcam_window is not None and gspro_window is not None:
+                        if PUTTING_MODE == 1 and PUTTING_WINDOW_CONTROL != 0 and webcam_window is not None and gspro_window is not None:
                             try:
                                 app = pywinauto.Application()
                                 app.connect(handle=gspro_window)
@@ -502,6 +521,13 @@ def main():
     global send_shots_create_socket
     global send_shots_socket
     global gsp_stat    
+
+#    putt_server = PuttServer()
+#    if PUTTING_MODE == 1:
+#        putt_server.run()
+#        print_color_prefix(Color.GREEN, "ES16 Connector ||", "Putt Server has started")  
+#    time.sleep(1)
+    
     try:
         # Check for the GSPro OpenAPI connector
         found = False
@@ -795,6 +821,7 @@ if __name__ == "__main__":
     putt_server = PuttServer()
     if PUTTING_MODE == 1:
         putt_server.run()
+        print_color_prefix(Color.GREEN, "ES16 Connector ||", "PUTT SERVER is running")
     time.sleep(1)
     main()
 

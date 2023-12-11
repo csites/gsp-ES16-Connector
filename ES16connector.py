@@ -206,12 +206,14 @@ So this is pulled right out of
 """
 class PuttHandler(BaseHTTPRequestHandler):
     def do_POST(self):
+        global voice
         length = int(self.headers.get('content-length'))
         if length > 0 and gsp_stat.Putter:
             response_code = 200
             message = '{"result" : "OK"}'
             res = json.loads(self.rfile.read(length))
-
+            print(res)
+            
             putt = {
                 "DeviceID": "ES16 Tour Plus",
                 "Units": METRIC,
@@ -236,6 +238,7 @@ class PuttHandler(BaseHTTPRequestHandler):
             putt['ClubData']['Path'] = '-'
             putt['ClubData']['FaceToTarget'] = '-'
             shot_q.put(putt)
+            print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
 
         else:
             if not gsp_stat.Putter:
@@ -822,6 +825,7 @@ if __name__ == "__main__":
     if PUTTING_MODE == 1:
         putt_server.run()
         print_color_prefix(Color.GREEN, "ES16 Connector ||", "PUTT SERVER is running")
+        gsp_stat.Putter=True
     time.sleep(1)
     main()
 

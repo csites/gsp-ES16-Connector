@@ -210,7 +210,7 @@ So this is pulled right out of the old code.
 """
 class PuttHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-         length = int(self.headers.get('content-length'))
+        length = int(self.headers.get('content-length'))
         if length > 0 and gsp_stat.Putter:
             response_code = 200
             message = '{"result" : "OK"}'

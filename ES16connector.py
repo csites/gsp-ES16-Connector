@@ -794,8 +794,7 @@ def main():
             if 'GSPconnect.exe' == proc.name():
               proc = psutil.Process(proc.pid)
               path=proc.exe()
-               # Don't terminate the process.  Make debugging faster. 
-#              proc.terminate()
+              proc.terminate()
               print_color_prefix(Color.RED, "ES16 Connector ||", "Closed GSPconnect.exe.")
               break
         except Exception as e:

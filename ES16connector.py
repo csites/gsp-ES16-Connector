@@ -241,6 +241,7 @@ class PuttHandler(BaseHTTPRequestHandler):
             putt['ClubData']['Path'] = '-'
             putt['ClubData']['FaceToTarget'] = '-'
             shot_q.put(putt)
+            send_shot()
             print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
 
         else:

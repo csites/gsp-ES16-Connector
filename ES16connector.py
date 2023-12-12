@@ -54,7 +54,7 @@ COM_BAUD = settings.get("COM_BAUD")
 # Audible Read signal.
 AUDIBLE_READY = settings.get("AUDIBLE_READY")
 PUTTING_MODE = settings.get("PUTTING_MODE") # 0 = Native ES16, 1=Alexx Putt server
-PUTTING_WINDOW_CONTROL = settings.get("PUTTING_WINDOW_CONTROL") # 0 means we control the windows
+PUTTING_WINDOW_CONTROL = settings.get("PUTTING_WINDOW_CONTROL") # 1 means this code controls the putt window popup
 
 if PORT is None:
     PORT=921
@@ -67,8 +67,12 @@ if AUDIBLE_READY is None:
 if PUTTING_MODE is None:
     PUTTING_MODE = 0;     # 1 means enable webcam server  
 if PUTTING_WINDOW_CONTROL is None:
-    PUTTING_WINDOW_CONTROL = 0   # Let Alexx control it's own window
-    
+    PUTTING_WINDOW_CONTROL = 0 # Let Alexx control it's own window. For clarity changed name from PUTTING_OPTION
+if COM_PORT is None:   # Opps.  Forgot this option.  Thanks @YetG08
+    COM_PORT = "COM7"
+if COM_BAUD is None:
+    COM_BAUD = 15220
+        
 # Setup the GSPro status variable
 class c_GSPRO_Status:
     Ready = True
@@ -147,7 +151,7 @@ gsclub_2voice_mapping = {
     "PT": ("Putter", "Ptt"),
 }
 
-# Club Selection helper. Create the key/value variable lists for club conversion. This is so we can go back and forth between 
+# Club Selection helper. Create the key/value variable lists for club conversion. This is so we can go back and forth between formats.
 def create_key_value_variable_lists() -> tuple[dict, dict]:
   """Creates two key/value variable lists from an ES-to-GSP club map.
   Args:
@@ -199,15 +203,14 @@ def process_input_string(input_string):
     return mydict
 
 """
-After some initial testing with the ES16, There exxists an issue with it's putting.
-The ES16 dows putting OK but it does not work well for shot putts.  So I thing
-giving the option to use Alexx's putting code (or my own) is a good option.
-So this is pulled right out of 
+After some initial testing with the ES16 TP 2.0, There exists an issue with it's putting.
+The ES16 does putting OK but it does not work well for short putts.  So I think
+giving the option to use Alexx's putting code (or my own fisheye code) is a good option.
+So this is pulled right out of the old code.
 """
 class PuttHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        global voice
-        length = int(self.headers.get('content-length'))
+         length = int(self.headers.get('content-length'))
         if length > 0 and gsp_stat.Putter:
             response_code = 200
             message = '{"result" : "OK"}'
@@ -252,8 +255,11 @@ class PuttHandler(BaseHTTPRequestHandler):
 """
 PuttServer.   This is an http server to process an Allexx type putting applicatoin.
 It runs a the server as a thread in the background which waits for data on the http
-port 8888.  The putt application passws it data via json encoded data, which is 
-put into the shotq. 
+port 8888.  The putt application passes it data via json encoded data, which is 
+put into the shotq.  Through the magic of a Shared Memory multiProcessor (SMP), it gets 
+to the other threads. I modify the server threading by declaring daemon=True.
+One thing I noticed is Alleexx's client sends to http://127.0.0.1:8888/putting but 
+it looks like '/putting' portion of the url is ignored. 
 """
 class PuttServer(threading.Thread):
     def run(self):
@@ -261,22 +267,10 @@ class PuttServer(threading.Thread):
         print_color_prefix(Color.GREEN, "Putting Server ||", "Starting. Use ball_tracking from https://github.com/alleexx/cam-putting-py")
         server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         server_thread.start()
-#        # ... your code here ...
-#        print_color_prefix(Color.RED, "Putting Server ||", "Stopping")
-#        self.server.shutdown()
 
     def stop(self):
         print_color_prefix(Color.RED, "Putting Server ||", "Shutting down")
         self.server.shutdown()
-
-#    def run(self):
-#        self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler)
-#        print_color_prefix(Color.GREEN, "Putting Server ||", "Started.  Use ball_tracking from https://github.com/alleexx/cam-putting-py")
-#        self.server.serve_forever()
-#        print_color_prefix(Color.RED, "Putting Server ||", "Stopped")
-#    def stop(self):
-#        print_color_prefix(Color.RED, "Putting Server ||", "Shutting down")
-#        self.server.shutdown()
 
 """
 Process_gspro.   This function takes data returned from a socket read (what GSPro 
@@ -291,7 +285,7 @@ def process_gspro(resp):
     global ser
     
     code_200_found = False
-
+    # You've got to love this.
     jsons = re.split('(\{.*?\})(?= *\{)', resp.decode("utf-8"))
     print(jsons)
     for this_json in jsons:
@@ -338,7 +332,7 @@ def process_gspro(resp):
                   print("Expect: "+string_data)
                   ser.flush()
 
-                # Check to see how we handle putting.
+                # Check to see how we handle the putting window do we auto popup the putt window? 
                 if PUTTING_MODE != 0:
                     if gsp_stat.Club == "PT":
                         if not gsp_stat.Putter:
@@ -384,7 +378,7 @@ def process_gspro(resp):
 send_shots.  This function handles all the communication with the openAPI.  It
 creates a socket if one doesn't exist.  It check for any pending data on the
 socket being sent from GSPro (ie. msg[Code]=200...etc).  It then pulls a message 
-off the shotq  and send it down the pipe to the OpenAPI to GSPro.  It then checks 
+off the shotq FIFO and send it down the pipe to the OpenAPI to GSPro.  It then checks 
 for a return message on the socket, and checks for an ack (msg[Code]=200... etc).  
 """
 def send_shots():
@@ -503,7 +497,7 @@ Here we are at the main function.  We begin the main function by initializing al
 global variables, search and wait for the OpenAPI to be running.  We open the Ernest Sport 
 serial port (typically COM7) and enable the vocalizer.  We then send an a heartbeat message 
 to the openAPI to wakeit up (which creates the socket connection on the first message). We 
-then proceed to out main loop which continues until we quit or exit.
+then proceed to our main loop which continues until we quit or exit.
 """
 # Initialize function 'send_shots' static varibles
 send_shots.gspro_connection_notified = False
@@ -524,13 +518,8 @@ def main():
     global send_shots_create_socket
     global send_shots_socket
     global gsp_stat    
-
-#    putt_server = PuttServer()
-#    if PUTTING_MODE == 1:
-#        putt_server.run()
-#        print_color_prefix(Color.GREEN, "ES16 Connector ||", "Putt Server has started")  
-#    time.sleep(1)
     
+    # Let's setup a big error trap in-case anything goes wrong in setup.
     try:
         # Check for the GSPro OpenAPI connector
         found = False
@@ -554,7 +543,7 @@ def main():
 
         found = False
         while not found:
-          ser = serial.Serial('COM7', baudrate=115200,timeout=1.5)
+          ser = serial.Serial(COM_PORT, COM_BAUD, timeout=1.5)
           # Check if the port is open
           if ser.isOpen():
             print_color_prefix(Color.GREEN, "ES16  ||", "Connecting to ES16 serial port: ({}:{})...".format(COM_PORT, COM_BAUD))
@@ -570,8 +559,6 @@ def main():
           "Units": METRIC,
           "ShotNumber": 0,
           "APIversion": "1",
-   #       "BallData": {},
-   #       "ClubData": {},
           "ShotDataOptions": {
               "ContainsBallData": False,
               "ContainsClubData": False,
@@ -794,7 +781,7 @@ def main():
             continue
         
     except Exception as e:
-        print_color_prefix(Color.RED, "ES16 Connector ||","An error occurred in main before line 768: {}".format(e))
+        print_color_prefix(Color.RED, "ES16 Connector ||","An error occurred in main before line 779: {}".format(e))
     except KeyboardInterrupt:
         print("Ctrl-C pressed")
 

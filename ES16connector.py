@@ -110,6 +110,8 @@ def print_color_prefix(color, prefix, message):
 
 # Establish a shot Queue
 shot_q = Queue()
+# Also make voice global for the putt server 
+voice = None
 
 # Key/value arrays for club selection routines.
 ES_gsp_Clubs="Drv DR, 3Wd W2, 3Wd W3, 4Wd W4, 5Wd W5, 7Wd W7, 7Wd W6, 2Hy H2, 3Hy H3, 4Hy H4, 5Hy H7, 5Hy H6, 5Hy H5, 2Ir I2, 2Ir I1, 3Ir I3, 4Ir I4, 5Ir I5, 6Ir I6,  7Ir I7, 8Ir I8, 9Ir I9, Ptw PW, Gpw GW, Sdw SW, Ldw LW, Chp LW, Ptt PT"
@@ -210,6 +212,7 @@ So this is pulled right out of the old code.
 """
 class PuttHandler(BaseHTTPRequestHandler):
     def do_POST(self):
+        global voice
         length = int(self.headers.get('content-length'))
         if length > 0 and gsp_stat.Putter:
             response_code = 200
@@ -241,7 +244,6 @@ class PuttHandler(BaseHTTPRequestHandler):
             putt['ClubData']['Path'] = '-'
             putt['ClubData']['FaceToTarget'] = '-'
             shot_q.put(putt)
-            send_shots()
             print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
 
         else:
@@ -307,39 +309,39 @@ def process_gspro(resp):
                 # to Send club change to 'Chip' mode for pure optical
                 # Send date to Club change to ES16.
                 if (gsp_stat.Club != gsp_stat.Club_previous):
-                  voice.say("Changing clubs to "+gsclub_2voice_mapping[gsp_stat.Club][0]+".")
-                  voice.runAndWait()
-                  gsp_stat.Club_previous = gsp_stat.Club
-                  # If we want to check for an external putter application
-                  # We might want to do it here, or set a trigger for it  
- 
-                  if (gsp_stat.Club == "LW" and  gsp_stat.DistToPin <= 40.0):
-                    Club_change = "CLUBCHPLOFT000\r"
-                  else:
-                    Club_change = "CLUB"+gs_to_es[gsp_stat.Club]+"LOFT000\r"
+                      voice.say("Changing clubs to "+gsclub_2voice_mapping[gsp_stat.Club][0]+".")
+                      voice.runAndWait()
 
-                  msg = Club_change.encode('ascii') 
-                  print_color_prefix(Color.RED, "|| ES16 Change Clubs ||", msg)
-                  print_color_prefix(Color.GREEN,"|| ES16 Connector    ||", f"Change Club: {gs_to_es[gsp_stat.Club]}, Distance to Pin: {gsp_stat.DistToPin}")
-                  ser.write(msg)
-       
-                  # After club change look for OK.        
-                  while (ser.inWaiting() == 0):  
-                    time.sleep(0.1)
-          
-                  #Read the data from the port
-                  data = ser.read(3)
-                  string_data = data.decode('utf-8')
-                  print("Expect: "+string_data)
-                  ser.flush()
+                      # If we want to check for an external putter application
+                      # We might want to do it here, or set a trigger for it  
+     
+                      if (gsp_stat.Club == "LW" and  gsp_stat.DistToPin <= 40.0):
+                        Club_change = "CLUBCHPLOFT000\r"
+                      else:
+                        Club_change = "CLUB"+gs_to_es[gsp_stat.Club]+"LOFT000\r"
+
+                      msg = Club_change.encode('ascii') 
+                      print_color_prefix(Color.RED, "|| ES16 Change Clubs ||", msg)
+                      print_color_prefix(Color.GREEN,"|| ES16 Connector    ||", f"Change Club: {gs_to_es[gsp_stat.Club]}, Distance to Pin: {gsp_stat.DistToPin}")
+                      ser.write(msg)
+           
+                      # After club change look for OK.        
+                      while (ser.inWaiting() == 0):  
+                        time.sleep(0.1)
+              
+                      #Read the data from the port
+                      data = ser.read(3)
+                      string_data = data.decode('utf-8')
+                      print("Expect: "+string_data)
+                      ser.flush()
 
                 # Check to see how we handle the putting window do we auto popup the putt window? 
-                if PUTTING_MODE != 0:
+                if PUTTING_MODE != 0 and  PUTTING_WINDOW_CONTROL != 0:
                     if gsp_stat.Club == "PT":
                         if not gsp_stat.Putter:
                             print_color_prefix(Color.GREEN, "ES16 Connector ||", "Putting Mode")
                             gsp_stat.Putter = True
-                        if PUTTING_MODE ==1 and PUTTING_WINDOW_CONTROL != 0 and webcam_window is not None and gspro_window is not None:
+                        if webcam_window is not None and gspro_window is not None:
                             # Pop up putting window on putt?
                             try:
                                 app = pywinauto.Application()
@@ -358,7 +360,7 @@ def process_gspro(resp):
                         if gsp_stat.Putter:
                             print_color_prefix(Color.GREEN, "ES16 Connector ||", "Full-shot Mode")
                             gsp_stat.Putter = False
-                        if PUTTING_MODE == 1 and PUTTING_WINDOW_CONTROL != 0 and webcam_window is not None and gspro_window is not None:
+                        if webcam_window is not None and gspro_window is not None:
                             try:
                                 app = pywinauto.Application()
                                 app.connect(handle=gspro_window)
@@ -372,6 +374,7 @@ def process_gspro(resp):
                                     for win in pywinauto.findwindows.find_elements():
                                         if 'GSPRO' in str(win).upper():
                                             print(str(win))
+                gsp_stat.Club_previous = gsp_stat.Club                                    
     print("Exit process_gspro()")                                            
     return code_200_found
 
@@ -524,7 +527,7 @@ def main():
     try:
         # Check for the GSPro OpenAPI connector
         found = False
-        while not found:
+        while not found:        
           for proc in psutil.process_iter():
               if 'GSPconnect.exe' == proc.name():
                   found = True

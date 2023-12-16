@@ -107,11 +107,12 @@ class Color:
 
 def print_color_prefix(color, prefix, message):
     print(f"{color}{prefix}{Color.RESET}", message)
-
+# So we can safely run the putt server as a thread.
+lock_q = threading.Lock()
 # Establish a shot Queue
 shot_q = Queue()
 # Also make voice global for the putt server 
-voice = None
+globak voice = None
 
 # Key/value arrays for club selection routines.
 ES_gsp_Clubs="Drv DR, 3Wd W2, 3Wd W3, 4Wd W4, 5Wd W5, 7Wd W7, 7Wd W6, 2Hy H2, 3Hy H3, 4Hy H4, 5Hy H7, 5Hy H6, 5Hy H5, 2Ir I2, 2Ir I1, 3Ir I3, 4Ir I4, 5Ir I5, 6Ir I6,  7Ir I7, 8Ir I8, 9Ir I9, Ptw PW, Gpw GW, Sdw SW, Ldw LW, Chp LW, Ptt PT"
@@ -212,7 +213,6 @@ So this is pulled right out of the old code.
 """
 class PuttHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        global voice
         length = int(self.headers.get('content-length'))
         if length > 0 and gsp_stat.Putter:
             response_code = 200
@@ -243,7 +243,10 @@ class PuttHandler(BaseHTTPRequestHandler):
             putt['ClubData']['Speed'] = float(res['ballData']['BallSpeed'])
             putt['ClubData']['Path'] = '-'
             putt['ClubData']['FaceToTarget'] = '-'
-            shot_q.put(putt)
+            # Put a lock on the shotq update.
+            with lock:
+                shot_q.put(putt)
+            send_shots()
             print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
 
         else:

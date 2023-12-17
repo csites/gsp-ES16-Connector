@@ -339,7 +339,12 @@ def process_gspro(resp):
                       string_data = data.decode('utf-8')
                       print("Expect: "+string_data)
                       ser.flush()
-
+                # Check for putter
+                if gsp_stat.Club == "PT" and gsp_stat.Putter == False:
+                    gsp_stat.Putter = True
+                else:
+                    gsp_stat.Putter = False
+                    
                 # Check to see how we handle the putting window do we auto popup the putt window? 
                 if PUTTING_MODE != 0 and  PUTTING_WINDOW_CONTROL != 0:
                     if gsp_stat.Club == "PT":

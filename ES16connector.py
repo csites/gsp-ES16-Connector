@@ -7,9 +7,7 @@ import os
 import json
 import math
 import re
-from http.server import HTTPServer, BaseHTTPRequestHandler
-# from http.server import ThreadingHTTPServer, import HTTPServer BaseHTTPRequestHandler
-from socketserver import ThreadingMixIn
+from http.server import ThreadingHTTPServer BaseHTTPRequestHandler
 import threading
 from queue import Queue
 import select
@@ -262,12 +260,6 @@ class PuttHandler(BaseHTTPRequestHandler):
         self.wfile.write(str.encode(message))
         return
 
-""" 
-ThreadedHTTPServer.  Let see if this helps.   
-"""
-class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
-    pass
-
 """
 PuttServer.   This is an http server to process an Allexx type putting applicatoin.
 It runs a the server as a thread in the background which waits for data on the http
@@ -280,7 +272,8 @@ it looks like '/putting' portion of the url is ignored.
 class PuttServer(threading.Thread):
     def run(self):
         print_color_prefix(Color.GREEN, "Putting Server ||", "Starting. Use ball_tracking from https://github.com/alleexx/cam-putting-py")
-        self.server = ThreadedHTTPServer(('0.0.0.0', 8888), PuttHandler).serve_forever()
+        self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler).serve_forever()
+        threading.enumberate()
         return
  #       self.server.serve_forever()
  #       server_thread = threading.Thread(target=self.server.serve_forever, daemon=False)
@@ -562,7 +555,13 @@ def main():
         voice.setProperty('voice', 'Microsoft Mary')
         voice.say("E S 16 Connector is Ready!")
         voice.runAndWait()
-
+        
+        # Now start up the PuttServer in background if we are using Allexx's style putting.
+        if PUTTING_MODE == 1:    
+            putt_server = PuttServer()
+            putt_server.run()
+            print_color_prefix(Color.GREEN, "ES16 Connector ||", "PUTT SERVER is running")
+            gsp_stat.Putter=False  # Means we are in putting mode.
 
         found = False
         while not found:
@@ -831,12 +830,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # Now start up the PuttServer in background if we are using Allexx's style putting.
-    if PUTTING_MODE == 1:    
-        putt_server = PuttServer()
-        putt_server.run()
-        print_color_prefix(Color.GREEN, "ES16 Connector ||", "PUTT SERVER is running")
-        gsp_stat.Putter=False  # Means we are in putting mode.
+
 
     time.sleep(1)
     main()

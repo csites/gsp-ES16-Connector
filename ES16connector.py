@@ -7,7 +7,7 @@ import os
 import json
 import math
 import re
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+from http.server import HTTPServer, BaseHTTPRequestHandler
 # from http.server import ThreadingHTTPServer, import HTTPServer BaseHTTPRequestHandler
 import threading
 from queue import Queue

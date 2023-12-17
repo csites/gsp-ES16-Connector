@@ -263,9 +263,9 @@ class PuttHandler(BaseHTTPRequestHandler):
         return
 
 """ 
-ThreadingHTTPServer.  Let see if this helps.   
+ThreadedHTTPServer.  Let see if this helps.   
 """
-class ThreadedSimpleServer(ThreadingMixIn, HTTPServer):
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     pass
 
 """

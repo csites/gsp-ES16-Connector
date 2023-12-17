@@ -553,12 +553,6 @@ def main():
         voice.say("E S 16 Connector is Ready!")
         voice.runAndWait()
 
-        # Now start up the PuttServer in background if we are using Allexx's style putting.
-        if PUTTING_MODE == 1:    
-            putt_server = PuttServer()
-            putt_server.run()
-            print_color_prefix(Color.GREEN, "ES16 Connector ||", "PUTT SERVER is running")
-            gsp_stat.Putter=False  # Means we are in putting mode.
 
         found = False
         while not found:
@@ -827,6 +821,13 @@ def main():
 
 
 if __name__ == "__main__":
+    # Now start up the PuttServer in background if we are using Allexx's style putting.
+    if PUTTING_MODE == 1:    
+        putt_server = PuttServer()
+        putt_server.run()
+        print_color_prefix(Color.GREEN, "ES16 Connector ||", "PUTT SERVER is running")
+        gsp_stat.Putter=False  # Means we are in putting mode.
+
     time.sleep(1)
     main()
 

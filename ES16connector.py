@@ -7,7 +7,8 @@ import os
 import json
 import math
 import re
-from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+# from http.server import ThreadingHTTPServer, import HTTPServer BaseHTTPRequestHandler
 import threading
 from queue import Queue
 import select
@@ -250,7 +251,6 @@ class PuttHandler(BaseHTTPRequestHandler):
             print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.runAndWait()
-
         else:
             if not gsp_stat.Putter:
                 print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
@@ -259,6 +259,13 @@ class PuttHandler(BaseHTTPRequestHandler):
         self.send_response_only(response_code) # how to quiet this console message?
         self.end_headers()
         self.wfile.write(str.encode(message))
+        return
+
+""" 
+ThreadingHTTPServer.  Let see if this helps.   
+"""
+class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
+    pass
 
 """
 PuttServer.   This is an http server to process an Allexx type putting applicatoin.

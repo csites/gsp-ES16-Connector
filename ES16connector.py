@@ -112,7 +112,7 @@ lock_q = threading.Lock()
 # Establish a shot Queue
 shot_q = Queue()
 # Also make voice global for the putt server 
-globak voice = None
+global voice = None
 
 # Key/value arrays for club selection routines.
 ES_gsp_Clubs="Drv DR, 3Wd W2, 3Wd W3, 4Wd W4, 5Wd W5, 7Wd W7, 7Wd W6, 2Hy H2, 3Hy H3, 4Hy H4, 5Hy H7, 5Hy H6, 5Hy H5, 2Ir I2, 2Ir I1, 3Ir I3, 4Ir I4, 5Ir I5, 6Ir I6,  7Ir I7, 8Ir I8, 9Ir I9, Ptw PW, Gpw GW, Sdw SW, Ldw LW, Chp LW, Ptt PT"
@@ -244,10 +244,12 @@ class PuttHandler(BaseHTTPRequestHandler):
             putt['ClubData']['Path'] = '-'
             putt['ClubData']['FaceToTarget'] = '-'
             # Put a lock on the shotq update.
-            with lock:
+            with lock_q:
                 shot_q.put(putt)
-            send_shots()
+                send_shots()
             print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
+            voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
+            voice.runAndWait()
 
         else:
             if not gsp_stat.Putter:
@@ -548,6 +550,13 @@ def main():
         voice.say("E S 16 Connector is Ready!")
         voice.runAndWait()
 
+        # Now start up the PuttServer in background if we are using Allexx's style putting.
+        if PUTT_MODE == 1:    
+            putt_server = PuttServer()
+            putt_server.run()
+            print_color_prefix(Color.GREEN, "ES16 Connector ||", "PUTT SERVER is running")
+            gsp_stat.Putter=False  # Means we are in putting mode.
+
         found = False
         while not found:
           ser = serial.Serial(COM_PORT, COM_BAUD, timeout=1.5)
@@ -815,11 +824,6 @@ def main():
 
 
 if __name__ == "__main__":
-    putt_server = PuttServer()
-    if PUTTING_MODE == 1:
-        putt_server.run()
-        print_color_prefix(Color.GREEN, "ES16 Connector ||", "PUTT SERVER is running")
-        gsp_stat.Putter=True
     time.sleep(1)
     main()
 

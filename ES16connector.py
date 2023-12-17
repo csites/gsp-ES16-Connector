@@ -271,10 +271,11 @@ it looks like '/putting' portion of the url is ignored.
 """
 class PuttServer(threading.Thread):
     def run(self):
-        self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler)
         print_color_prefix(Color.GREEN, "Putting Server ||", "Starting. Use ball_tracking from https://github.com/alleexx/cam-putting-py")
-        server_thread = threading.Thread(target=self.server.serve_forever, daemon=False)
-        server_thread.start()
+        self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler)
+        self.server.serve_forever()
+ #       server_thread = threading.Thread(target=self.server.serve_forever, daemon=False)
+ #       server_thread.start()
 
     def stop(self):
         print_color_prefix(Color.RED, "Putting Server ||", "Shutting down")

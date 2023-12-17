@@ -265,7 +265,7 @@ class PuttHandler(BaseHTTPRequestHandler):
 """ 
 ThreadingHTTPServer.  Let see if this helps.   
 """
-class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
+class ThreadedSimpleServer(ThreadingMixIn, HTTPServer):
     pass
 
 """
@@ -280,7 +280,7 @@ it looks like '/putting' portion of the url is ignored.
 class PuttServer(threading.Thread):
     def run(self):
         print_color_prefix(Color.GREEN, "Putting Server ||", "Starting. Use ball_tracking from https://github.com/alleexx/cam-putting-py")
-        self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler).serve_forever()
+        self.server = ThreadedHTTPServer(('0.0.0.0', 8888), PuttHandler).serve_forever()
         return
  #       self.server.serve_forever()
  #       server_thread = threading.Thread(target=self.server.serve_forever, daemon=False)

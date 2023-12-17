@@ -1,5 +1,5 @@
 # ES16 to GSPro OpenAPI connector.  V 0.4
-# Csites 2023.   Added, Alexx's putt server.
+# Csites 2023.   Added, Alexx's putt server.  I'm having a thread issue with Allexx's putt server.  So please use the release.
 
 import time
 import sys

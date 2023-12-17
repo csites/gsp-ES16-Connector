@@ -7,7 +7,7 @@ import os
 import json
 import math
 import re
-from http.server import ThreadingHTTPServer BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 import threading
 from queue import Queue
 import select
@@ -244,9 +244,9 @@ class PuttHandler(BaseHTTPRequestHandler):
             putt['ClubData']['Path'] = '-'
             putt['ClubData']['FaceToTarget'] = '-'
             # Put a lock on the shotq update.
-            with lock_q:
-                shot_q.put(putt)
-                send_shots()
+#            with lock_q:
+            shot_q.put(putt)
+#                send_shots()
             print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.runAndWait()

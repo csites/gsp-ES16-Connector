@@ -551,7 +551,7 @@ def main():
         voice.runAndWait()
 
         # Now start up the PuttServer in background if we are using Allexx's style putting.
-        if PUTT_MODE == 1:    
+        if PUTTING_MODE == 1:    
             putt_server = PuttServer()
             putt_server.run()
             print_color_prefix(Color.GREEN, "ES16 Connector ||", "PUTT SERVER is running")

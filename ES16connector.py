@@ -345,7 +345,7 @@ def process_gspro(resp):
                       ser.flush()
                 # Check for putter
                 threading.enumerate()
-                print("Checking club for putter: "+gsp_stat.Club+" gsp_stat.Putter: +f"{gsp_stat.Putter}")
+                print(f"Checking club for putter: {gsp_stat.Club} gsp_stat.Putter: {gsp_stat.Putter}")
                 if gsp_stat.Club == "PT" and gsp_stat.Putter == False:
                     gsp_stat.Putter = True
                     

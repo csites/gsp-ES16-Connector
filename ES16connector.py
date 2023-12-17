@@ -250,6 +250,7 @@ class PuttHandler(BaseHTTPRequestHandler):
             print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.runAndWait()
+            threading.enumerate()
         else:
             if not gsp_stat.Putter:
                 print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
@@ -343,6 +344,8 @@ def process_gspro(resp):
                       print("Expect: "+string_data)
                       ser.flush()
                 # Check for putter
+                threading.enumerate()
+                print("Checking club for putter: "+gsp_stat.Club+" gsp_stat.Putter: +f"{gsp_stat.Putter}")
                 if gsp_stat.Club == "PT" and gsp_stat.Putter == False:
                     gsp_stat.Putter = True
                     

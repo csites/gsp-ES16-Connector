@@ -277,7 +277,7 @@ class PuttServer(threading.Thread):
         threading.enumberate()
         return
  #       self.server.serve_forever()
-        server_thread = threading.Thread(target=self.server.serve_forever, daemon=False)
+        server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         server_thread.start()
 
     def stop(self):

@@ -246,8 +246,9 @@ class PuttHandler(BaseHTTPRequestHandler):
             putt['ClubData']['FaceToTarget'] = '-'
             # Put a lock on the shotq update.
             with lock_q:
+                print("from puttHandler thread before shot_q.put")
                 shot_q.put(putt)
-                # It seems to hang in here.  
+                # It seems to hang in here.  I never see this.
                 print("From puttHandler thread entering send_shots with lock")
                 send_shots()
             print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")

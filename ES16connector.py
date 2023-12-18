@@ -247,7 +247,7 @@ class PuttHandler(BaseHTTPRequestHandler):
             # Put a lock on the shotq update.
             with lock_q:
                 shot_q.put(putt)
-  #              send_shots()
+                send_shots()
             print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.runAndWait()

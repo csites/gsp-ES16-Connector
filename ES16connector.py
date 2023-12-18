@@ -213,6 +213,7 @@ So this is pulled right out of the old code.
 """
 class PuttHandler(BaseHTTPRequestHandler):
     def do_POST(self):
+        global gsp_stat
         length = int(self.headers.get('content-length'))
         if length > 0 and gsp_stat.Putter:
             response_code = 200
@@ -246,7 +247,7 @@ class PuttHandler(BaseHTTPRequestHandler):
             # Put a lock on the shotq update.
 #            with lock_q:
             shot_q.put(putt)
-#                send_shots()
+            send_shots()
             print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.runAndWait()

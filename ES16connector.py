@@ -618,7 +618,8 @@ def main():
         # sending swing data.   
         loop=True
         while (loop == True):
-          if gsp_shot_q_waiting == True
+          # Check for a shot_q data waiting from putt thread.   
+          if gsp_shot_q_waiting == True:
             gsp_shot_q_waiting = False
             sent_shots()
           key = ""

@@ -247,7 +247,7 @@ class PuttHandler(BaseHTTPRequestHandler):
             # Put a lock on the shotq update.
             threading.enumerate()
             with lock_q:
-                print(f"Debug: lock_q: putthandler thread id: {thread.ident()}")
+                print(f"Debug: lock_q: putthandler thread id: {threading.get_ident()}")
                 print("Debug: from puttHandler thread before shot_q.put, expect another debug")
                 shot_q.put(putt)
                 # It seems to hang in here.  I never see this.
@@ -255,7 +255,7 @@ class PuttHandler(BaseHTTPRequestHandler):
                 send_shots()
                 print("Debug:  From puttHandler thread after send_shot, all OK here")
             print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
-            print(f"Debug: Left lock_q {thread.inden()}")
+            print(f"Debug: Left lock_q {threading.get_ident()}")
             voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.runAndWait()
             threading.enumerate()
@@ -288,7 +288,7 @@ class PuttServer(threading.Thread):
  #       return
  #       self.server.serve_forever()
         server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
-        print(f"Debug: starting putt server thread id: {server_thread.ident}")
+        print(f"Debug: starting putt server thread id: {threading.get_ident()}")
         server_thread.start()
 
     def stop(self):
@@ -577,7 +577,7 @@ def main():
             print_color_prefix(Color.GREEN, "ES16 Connector ||", "PUTT SERVER is running")
             gsp_stat.Putter=False  # Means we are in putting mode.
 
-        print(f"Debug: Main thread before serial open and after putt_server start id: {thread.ident()}")
+        print(f"Debug: Main thread before serial open and after putt_server start id: {threading.get_ident()}")
         found = False
         while not found:
           ser = serial.Serial(COM_PORT, COM_BAUD, timeout=1.5)

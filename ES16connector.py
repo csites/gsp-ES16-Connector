@@ -65,7 +65,7 @@ if METRIC is None:
 if AUDIBLE_READY is None:
     AUDIBLE_READY="YES"
 if PUTTING_MODE is None:
-    PUTTING_MODE = 0;     # 1 means enable webcam server  
+    PUTTING_MODE = 0     # 1 means enable webcam server
 if PUTTING_WINDOW_CONTROL is None:
     PUTTING_WINDOW_CONTROL = 0 # Let Alexx control it's own window. For clarity changed name from PUTTING_OPTION
 if COM_PORT is None:   # Opps.  Forgot this option.  Thanks @YetG08
@@ -245,13 +245,17 @@ class PuttHandler(BaseHTTPRequestHandler):
             putt['ClubData']['Path'] = '-'
             putt['ClubData']['FaceToTarget'] = '-'
             # Put a lock on the shotq update.
+            threading.enumerate()
             with lock_q:
-                print("from puttHandler thread before shot_q.put")
+                print(f"Debug: lock_q: putthandler thread id: {thread.ident()}")
+                print("Debug: from puttHandler thread before shot_q.put, expect another debug")
                 shot_q.put(putt)
                 # It seems to hang in here.  I never see this.
-                print("From puttHandler thread entering send_shots with lock")
+                print("Debug: From puttHandler thread entering send_shots with lock")
                 send_shots()
+                print("Debug:  From puttHandler thread after send_shot, all OK here")
             print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
+            print(f"Debug: Left lock_q {thread.inden()}")
             voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.runAndWait()
             threading.enumerate()
@@ -260,6 +264,8 @@ class PuttHandler(BaseHTTPRequestHandler):
                 print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
             response_code = 500
             message = '{"result" : "ERROR"}'
+
+        # I'm not sure where this goes. send_response_only   
         self.send_response_only(response_code) # how to quiet this console message?
         self.end_headers()
         self.wfile.write(str.encode(message))
@@ -282,6 +288,7 @@ class PuttServer(threading.Thread):
  #       return
  #       self.server.serve_forever()
         server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        print(f"Debug: starting putt server thread id: {server_thread.ident}")
         server_thread.start()
 
     def stop(self):
@@ -570,6 +577,7 @@ def main():
             print_color_prefix(Color.GREEN, "ES16 Connector ||", "PUTT SERVER is running")
             gsp_stat.Putter=False  # Means we are in putting mode.
 
+        print(f"Debug: Main thread before serial open and after putt_server start id: {thread.ident()}")
         found = False
         while not found:
           ser = serial.Serial(COM_PORT, COM_BAUD, timeout=1.5)

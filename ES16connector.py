@@ -251,7 +251,7 @@ class PuttHandler(BaseHTTPRequestHandler):
                 print(f"Debug: lock_q: putthandler thread id: {threading.get_ident()}")
                 print("Debug: from puttHandler thread before shot_q.put, expect another debug")
                 shot_q.put(putt)
-                gsp.Shot_q_waiting = True
+                gsp_stat.Shot_q_waiting = True
                 # It seems to hang in here.  I never see this.
                 print("Debug: From puttHandler thread entering send_shots with lock")
 #                send_shots()
@@ -619,8 +619,8 @@ def main():
         loop=True
         while (loop == True):
           # Check for a shot_q data waiting from putt thread.   
-          if gsp.Shot_q_waiting == True:
-            gsp.Shot_q_waiting = False
+          if gsp_stat.Shot_q_waiting == True:
+            gsp_stat.Shot_q_waiting = False
             sent_shots()
           key = ""
           while (ser.inWaiting() == 0):

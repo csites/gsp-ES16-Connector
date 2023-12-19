@@ -83,6 +83,7 @@ class c_GSPRO_Status:
     RollingOut = False
     Club = "DR"
     Club_previous = "None"
+    gsp_shot_q_waiting = False
     
 gsp_stat = c_GSPRO_Status()
 gsp_stat.Putter = False
@@ -250,15 +251,17 @@ class PuttHandler(BaseHTTPRequestHandler):
                 print(f"Debug: lock_q: putthandler thread id: {threading.get_ident()}")
                 print("Debug: from puttHandler thread before shot_q.put, expect another debug")
                 shot_q.put(putt)
+                gsp_shot_q_waiting = True
                 # It seems to hang in here.  I never see this.
                 print("Debug: From puttHandler thread entering send_shots with lock")
-                send_shots()
+#                send_shots()
                 print("Debug:  From puttHandler thread after send_shot, all OK here")
             print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             print(f"Debug: Left lock_q {threading.get_ident()}")
             voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.runAndWait()
             threading.enumerate()
+            send_ahots()
         else:
             if not gsp_stat.Putter:
                 print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")

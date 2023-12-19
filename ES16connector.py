@@ -261,7 +261,7 @@ class PuttHandler(BaseHTTPRequestHandler):
             voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.runAndWait()
             threading.enumerate()
-            send_ahots()
+         
         else:
             if not gsp_stat.Putter:
                 print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
@@ -618,6 +618,9 @@ def main():
         # sending swing data.   
         loop=True
         while (loop == True):
+          if gsp_shot_q_waiting == True
+            gsp_shot_q_waiting = False
+            sent_shots()
           key = ""
           while (ser.inWaiting() == 0):
               # Check if a key has been pressed

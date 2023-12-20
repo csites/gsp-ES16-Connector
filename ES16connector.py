@@ -258,10 +258,14 @@ class PuttHandler(BaseHTTPRequestHandler):
                 print("Debug:  From puttHandler thread after send_shot, all OK here")
             print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             print(f"Debug: Left lock_q {threading.get_ident()}")
+            self.send_response_only(response_code) # how to quiet this console message?
+            self.end_headers()
+            self.wfile.write(str.encode(message))
             voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.runAndWait()
             print(threading.enumerate())
             threading.interrupt()         
+            return
         else:
             if not gsp_stat.Putter:
                 print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")

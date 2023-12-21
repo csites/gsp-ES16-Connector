@@ -246,7 +246,7 @@ class PuttHandler(BaseHTTPRequestHandler):
             putt['ClubData']['Path'] = '-'
             putt['ClubData']['FaceToTarget'] = '-'
             # Put a lock on the shotq update.
-            threading.enumerate()
+            print(thread.ident())
             with lock_q:
                 print(f"Debug: lock_q: putthandler thread id: {threading.get_ident()}")
                 print("Debug: from puttHandler thread before shot_q.put, expect another debug")
@@ -256,15 +256,14 @@ class PuttHandler(BaseHTTPRequestHandler):
                 print("Debug: From puttHandler thread entering send_shots with lock")
 #                send_shots()
                 print("Debug:  From puttHandler thread after send_shot, all OK here")
-            print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
+            print(f"Nice Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             print(f"Debug: Left lock_q {threading.get_ident()}")
             self.send_response_only(response_code) # how to quiet this console message?
             self.end_headers()
             self.wfile.write(str.encode(message))
             voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             voice.runAndWait()
-            print(threading.enumerate())
-            threading.interrupt()         
+            send_shots()
             return
         else:
             if not gsp_stat.Putter:

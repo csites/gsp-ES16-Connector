@@ -61,7 +61,7 @@ class PuttHandler(BaseHTTPRequestHandler):
 
         else:
             if not gsp_stat.Putter:
-                print_colored_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
+                print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
             response_code = 500
             message = '{"result" : "ERROR"}'
         self.send_response_only(response_code) # how to quiet this console message?
@@ -80,7 +80,7 @@ it looks like '/putting' portion of the url is ignored.
 class PuttServer(threading.Thread):
     def run(self):
         self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler)
-        print_colored_prefix(Color.GREEN, "Putting Server ||", "Started.  Use ball_tracking from https://github.com/alleexx/cam-putting-py")
+        print_color_prefix(Color.GREEN, "Putting Server ||", "Started.  Use ball_tracking from https://github.com/alleexx/cam-putting-py")
         self.server.serve_forever()
         print_color_prefix(Color.RED, "Putting Server ||", "Stopped")
     def stop(self):

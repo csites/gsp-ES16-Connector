@@ -246,7 +246,7 @@ class PuttHandler(BaseHTTPRequestHandler):
             putt['ClubData']['Path'] = '-'
             putt['ClubData']['FaceToTarget'] = '-'
             # Put a lock on the shotq update.
-            print(thread.ident())
+
             with lock_q:
                 print(f"Debug: lock_q: putthandler thread id: {threading.get_ident()}")
                 print("Debug: from puttHandler thread before shot_q.put, expect another debug")
@@ -290,10 +290,8 @@ class PuttServer(threading.Thread):
     def run(self):
         print_color_prefix(Color.GREEN, "Putting Server ||", "Starting. Use ball_tracking from https://github.com/alleexx/cam-putting-py")
         self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler)
-        threading.enumerate()
- #       return
- #       self.server.serve_forever()
-        server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+#       self.server.serve_forever()
+        server_thread = threading.Thread(target=self.server.serve_forever, daemon=False)
         print(f"Debug: starting putt server thread id: {threading.get_ident()}")
         server_thread.start()
 

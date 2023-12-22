@@ -213,6 +213,15 @@ giving the option to use Alexx's putting code (or my own fisheye code) is a good
 So this is pulled right out of the old code.
 """
 class PuttHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        message =  threading.currentThread().getName()
+        self.wfile.write(b"Putt Server check: Thread name: ")
+        self.wfile.write(message)
+        self.wfile.write('\n')
+        return
+
     def do_POST(self):
         global gsp_stat
         length = int(self.headers.get('content-length'))
@@ -254,7 +263,7 @@ class PuttHandler(BaseHTTPRequestHandler):
                 gsp_stat.Shot_q_waiting = True
                 # It seems to hang in here.  I never see this.
                 print("Debug: From puttHandler thread entering send_shots with lock")
-#                send_shots()
+                send_shots()
                 print("Debug:  From puttHandler thread after send_shot, all OK here")
             print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
             print(f"Debug: Left lock_q {threading.get_ident()}")
@@ -291,10 +300,9 @@ class PuttServer(threading.Thread):
     def run(self):
         print_color_prefix(Color.GREEN, "Putting Server ||", "Starting. Use ball_tracking from https://github.com/alleexx/cam-putting-py")
         self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler)
-        threading.enumerate()
- #       return
+
  #       self.server.serve_forever()
-        server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        server_thread = threading.Thread(target = self.server.serve_forever, daemon = True)
         print(f"Debug: starting putt server thread id: {threading.get_ident()}")
         server_thread.start()
 

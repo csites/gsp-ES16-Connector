@@ -19,73 +19,6 @@ import pyttsx3
 import socket
 import serial
 import pywinauto
-"""
-After some initial testing with the ES16 TP 2.0, There exists an issue with it's putting.
-The ES16 does putting OK but it does not work well for short putts.  So I think
-giving the option to use Alexx's putting code (or my own fisheye code) is a good option.
-So this is pulled right out of the old code.
-"""
-class PuttHandler(BaseHTTPRequestHandler):
-
-    def do_POST(self):
-        length = int(self.headers.get('content-length'))
-        if length > 0 and gsp_stat.Putter:
-            response_code = 200
-            message = '{"result" : "OK"}'
-            res = json.loads(self.rfile.read(length))
-
-            putt = {
-                "DeviceID": "Rapsodo MLM2PRO",
-                "Units": METRIC,
-                "ShotNumber": 99,
-                "APIversion": "1",
-                "ShotDataOptions": {
-                    "ContainsBallData": True,
-                    "ContainsClubData": True,
-                    "LaunchMonitorIsReady": True,
-                    "LaunchMonitorBallDetected": True,
-                    "IsHeartBeat": False
-                }
-            }
-            putt['BallData'] = {}
-            putt['BallData']['Speed'] = float(res['ballData']['BallSpeed'])
-            putt['BallData']['TotalSpin'] = float(res['ballData']['TotalSpin'])
-            putt['BallData']['SpinAxis'] = 0
-            putt['BallData']['HLA'] = float(res['ballData']['LaunchDirection'])
-            putt['BallData']['VLA'] = 0
-            putt['ClubData'] = {}
-            putt['ClubData']['Speed'] = float(res['ballData']['BallSpeed'])
-            putt['ClubData']['Path'] = '-'
-            putt['ClubData']['FaceToTarget'] = '-'
-            shot_q.put(putt)
-
-        else:
-            if not gsp_stat.Putter:
-                print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
-            response_code = 500
-            message = '{"result" : "ERROR"}'
-        self.send_response_only(response_code) # how to quiet this console message?
-        self.end_headers()
-        self.wfile.write(str.encode(message))
-
-"""
-PuttServer.   This is an http server to process an Allexx type putting applicatoin.
-It runs a the server as a thread in the background which waits for data on the http
-port 8888.  The putt application passes it data via json encoded data, which is 
-put into the shotq.  Through the magic of a Shared Memory multiProcessor (SMP), it gets 
-to the other threads. I modify the server threading by declaring daemon=True.
-One thing I noticed is Alleexx's client sends to http://127.0.0.1:8888/putting but 
-it looks like '/putting' portion of the url is ignored. 
-"""
-class PuttServer(threading.Thread):
-    def run(self):
-        self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler)
-        print_color_prefix(Color.GREEN, "Putting Server ||", "Started.  Use ball_tracking from https://github.com/alleexx/cam-putting-py")
-        self.server.serve_forever()
-        print_color_prefix(Color.RED, "Putting Server ||", "Stopped")
-    def stop(self):
-        print_color_prefix(Color.RED, "Putting Server ||", "Shutting down")
-        self.server.shutdown()
 
 """
 Load settings.json and setup environment.  
@@ -273,8 +206,101 @@ def process_input_string(input_string):
 
     return mydict
 
+"""
+After some initial testing with the ES16 TP 2.0, There exists an issue with it's putting.
+The ES16 does putting OK but it does not work well for short putts.  So I think
+giving the option to use Alexx's putting code (or my own fisheye code) is a good option.
+So this is pulled right out of the old code.
+"""
+class PuttHandler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        global gsp_stat
+        length = int(self.headers.get('content-length'))
+        if length > 0 and gsp_stat.Putter:
+            response_code = 200
+            message = '{"result" : "OK"}'
+            res = json.loads(self.rfile.read(length))
+            print(res)
+            
+            putt = {
+                "DeviceID": "ES16 Tour Plus",
+                "Units": METRIC,
+                "ShotNumber": 99,
+                "APIversion": "1",
+                "ShotDataOptions": {
+                    "ContainsBallData": True,
+                    "ContainsClubData": True,
+                    "LaunchMonitorIsReady": True,
+                    "LaunchMonitorBallDetected": True,
+                    "IsHeartBeat": False
+                }
+            }
+            putt['BallData'] = {}
+            putt['BallData']['Speed'] = float(res['ballData']['BallSpeed'])
+            putt['BallData']['TotalSpin'] = float(res['ballData']['TotalSpin'])
+            putt['BallData']['SpinAxis'] = 0
+            putt['BallData']['HLA'] = float(res['ballData']['LaunchDirection'])
+            putt['BallData']['VLA'] = 0
+            putt['ClubData'] = {}
+            putt['ClubData']['Speed'] = float(res['ballData']['BallSpeed'])
+            putt['ClubData']['Path'] = '-'
+            putt['ClubData']['FaceToTarget'] = '-'
+            # Put a lock on the shotq update.
+            threading.enumerate()
+            with lock_q:
+                print(f"Debug: lock_q: putthandler thread id: {threading.get_ident()}")
+                print("Debug: from puttHandler thread before shot_q.put, expect another debug")
+                shot_q.put(putt)
+                gsp_stat.Shot_q_waiting = True
+                # It seems to hang in here.  I never see this.
+                print("Debug: From puttHandler thread entering send_shots with lock")
+#                send_shots()
+                print("Debug:  From puttHandler thread after send_shot, all OK here")
+            print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
+            print(f"Debug: Left lock_q {threading.get_ident()}")
+            self.send_response_only(response_code) # how to quiet this console message?
+            self.end_headers()
+            self.wfile.write(str.encode(message))
+            voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
+            voice.runAndWait()
+            print(threading.enumerate())
+            threading.interrupt()         
+            return
+        else:
+            if not gsp_stat.Putter:
+                print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
+            response_code = 500
+            message = '{"result" : "ERROR"}'
 
+        # I'm not sure where this goes. send_response_only   
+        self.send_response_only(response_code) # how to quiet this console message?
+        self.end_headers()
+        self.wfile.write(str.encode(message))
+        return
 
+"""
+PuttServer.   This is an http server to process an Allexx type putting applicatoin.
+It runs a the server as a thread in the background which waits for data on the http
+port 8888.  The putt application passes it data via json encoded data, which is 
+put into the shotq.  Through the magic of a Shared Memory multiProcessor (SMP), it gets 
+to the other threads. I modify the server threading by declaring daemon=True.
+One thing I noticed is Alleexx's client sends to http://127.0.0.1:8888/putting but 
+it looks like '/putting' portion of the url is ignored. 
+"""
+class PuttServer(threading.Thread):
+    def run(self):
+        print_color_prefix(Color.GREEN, "Putting Server ||", "Starting. Use ball_tracking from https://github.com/alleexx/cam-putting-py")
+        self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler)
+        threading.enumerate()
+ #       return
+ #       self.server.serve_forever()
+        server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        print(f"Debug: starting putt server thread id: {threading.get_ident()}")
+        server_thread.start()
+
+    def stop(self):
+        print_color_prefix(Color.RED, "Putting Server ||", "Shutting down")
+        self.server.shutdown()
 
 """
 Process_gspro.   This function takes data returned from a socket read (what GSPro 

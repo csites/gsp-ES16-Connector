@@ -79,16 +79,14 @@ class c_GSPRO_Status:
     Ready = True
     ShotReceived = False
     ReadyTime = 0
-    Putter = False
+    Putter = True
     DistToPin = 200
     RollingOut = False
-    Club = "DR"
+    Club = "PT"
     Club_previous = "None"
     Shot_q_waiting = False
     
 gsp_stat = c_GSPRO_Status()
-gsp_stat.Putter = False
-gsp_stat.Ready = True
 
 # To talk to GSPro OpenAPI
 def create_socket_connection(host, port):
@@ -215,6 +213,7 @@ So this is pulled right out of the old code.
 """
 class PuttHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        global gsp_stat
         self.send_response(200)
         self.end_headers()
 #        message =  threading.currentThread().getName()
@@ -278,6 +277,7 @@ class PuttHandler(BaseHTTPRequestHandler):
           else:
               if not gsp_stat.Putter:
                   print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
+                  print(f"gsp_stat.Putter: {gsp_stat.Putter}    gsp_stat.Club: {gsp_stat.Club}")
               response_code = 500
               message = '{"result" : "ERROR"}'
               
@@ -289,7 +289,7 @@ class PuttHandler(BaseHTTPRequestHandler):
           # I'm not sure where this goes. send_response_only   
           self.send_response_only(response_code) # how to quiet this console message?
           self.end_headers()
-          self.wfile.write(str.encode(json.dumps(hmessage)))
+          self.wfile.write(str.encode(json.dumps(message)))
         return
         
 """
@@ -375,7 +375,7 @@ def process_gspro(resp):
                       print("Expect: "+string_data)
                       ser.flush()
                 # Check for putter
-                threading.enumerate()
+                logging.warning(threading.enumerate())
 
                 if gsp_stat.Club == "PT" and gsp_stat.Putter == False:
                     gsp_stat.Putter = True
@@ -863,16 +863,19 @@ def main():
         print("Quit!")
 
 
+"""
+Here it is; the main starting point.  We do launch check to see if we need to 
+launch the PuttServer as a daemon in the background.  Since we have the do_GET
+feature implemented, we could use it to provide some additional stats but for 
+now, lets just print the gsp_status for putting.
+"""
 if __name__ == "__main__":
-    # Now start up the PuttServer in background if we are using Allexx's style putting.
+    # Now start up the PuttServer in daemon background if we are using Allexx's style putting.
     if PUTTING_MODE == 1:    
         putt_server = PuttServer()
         putt_server.run()
         print_color_prefix(Color.GREEN, "ES16 Connector ||", "PUTT SERVER is running")
-        gsp_stat.Putter=False  # Means we are in putting mode.
-
-
-
+        gsp_stat.Putter=False  # Means we are not in putting mode.
     time.sleep(1)
     main()
 

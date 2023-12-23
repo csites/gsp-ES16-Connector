@@ -286,7 +286,7 @@ class PuttHandler(BaseHTTPRequestHandler):
               
         except Exception as e:
           response_code = 500
-          message = '{"result": format(e)}'
+          message = '{"result": "{format(e)}"}'
           logging.warning(f'Putting Error in daemon: {format(e)}')
         finally:
           # I'm not sure where this goes. send_response_only   

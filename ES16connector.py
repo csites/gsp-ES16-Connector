@@ -217,13 +217,14 @@ class PuttHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        message =  threading.currentThread().getName()
-        self.wfile.write(b"Putt Server check: Thread name: ")
+#        message =  threading.currentThread().getName()
+#        self.wfile.write(b"Putt Server check: Thread name: ")
+#        self.wfile.write(message)
+#        self.wfile.write('\n')
+        message = f"Putter selected: {gsp_stat.Club} is it putter: {gsp_stat.Putter}".encode()
+        print(message)
         self.wfile.write(message)
-        self.wfile.write('\n')
-        message = f"Putter selected: {gsp_stat.Club} is it putter: {gdp_stat.putter}"
-        self.wfile.write(message)
-        self.wfile.write('\n')
+        self.wfile.write(b'\n')
         return
 
     def do_POST(self):
@@ -591,13 +592,6 @@ def main():
         voice.say("E S 16 Connector is Ready!")
         voice.runAndWait()
         
-        # Now start up the PuttServer in background if we are using Allexx's style putting.
-        if PUTTING_MODE == 1:    
-            putt_server = PuttServer()
-            putt_server.run()
-            print_color_prefix(Color.GREEN, "ES16 Connector ||", "PUTT SERVER is running")
-            gsp_stat.Putter=False  # Means we are in putting mode.
-
         print(f"Debug: Main thread before serial open and after putt_server start id: {threading.get_ident()}")
         found = False
         while not found:
@@ -870,6 +864,13 @@ def main():
 
 
 if __name__ == "__main__":
+    # Now start up the PuttServer in background if we are using Allexx's style putting.
+    if PUTTING_MODE == 1:    
+        putt_server = PuttServer()
+        putt_server.run()
+        print_color_prefix(Color.GREEN, "ES16 Connector ||", "PUTT SERVER is running")
+        gsp_stat.Putter=False  # Means we are in putting mode.
+
 
 
     time.sleep(1)

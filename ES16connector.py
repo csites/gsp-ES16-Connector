@@ -628,10 +628,10 @@ def main():
         # sending swing data.   
         loop=True
         while (loop == True):
-          # Check for a shot_q data waiting from putt thread.   
-          if gsp_stat.Shot_q_waiting == True:
-            gsp_stat.Shot_q_waiting = False
-            sent_shots()
+#    Not needed?      # Check for a shot_q data waiting from putt thread.   
+#          if gsp_stat.Shot_q_waiting == True:
+#            gsp_stat.Shot_q_waiting = False
+#            send_shots()
           key = ""
           while (ser.inWaiting() == 0):
               # Check if a key has been pressed

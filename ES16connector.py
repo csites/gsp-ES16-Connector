@@ -19,6 +19,7 @@ import pyttsx3
 import socket
 import serial
 import pywinauto
+import logging
 
 """
 Load settings.json and setup environment.  
@@ -220,73 +221,76 @@ class PuttHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Putt Server check: Thread name: ")
         self.wfile.write(message)
         self.wfile.write('\n')
+        message = f"Putter selected: {gsp_stat.Club} is it putter: {gdp_stat.putter}"
+        self.wfile.write(message)
+        self.wfile.write('\n')
         return
 
     def do_POST(self):
         global gsp_stat
         length = int(self.headers.get('content-length'))
-        if length > 0 and gsp_stat.Putter:
-            response_code = 200
-            message = '{"result" : "OK"}'
-            res = json.loads(self.rfile.read(length))
-            print(res)
-            
-            putt = {
-                "DeviceID": "ES16 Tour Plus",
-                "Units": METRIC,
-                "ShotNumber": 99,
-                "APIversion": "1",
-                "ShotDataOptions": {
-                    "ContainsBallData": True,
-                    "ContainsClubData": True,
-                    "LaunchMonitorIsReady": True,
-                    "LaunchMonitorBallDetected": True,
-                    "IsHeartBeat": False
-                }
-            }
-            putt['BallData'] = {}
-            putt['BallData']['Speed'] = float(res['ballData']['BallSpeed'])
-            putt['BallData']['TotalSpin'] = float(res['ballData']['TotalSpin'])
-            putt['BallData']['SpinAxis'] = 0
-            putt['BallData']['HLA'] = float(res['ballData']['LaunchDirection'])
-            putt['BallData']['VLA'] = 0
-            putt['ClubData'] = {}
-            putt['ClubData']['Speed'] = float(res['ballData']['BallSpeed'])
-            putt['ClubData']['Path'] = '-'
-            putt['ClubData']['FaceToTarget'] = '-'
-            # Put a lock on the shotq update.
-            threading.enumerate()
-            with lock_q:
-                print(f"Debug: lock_q: putthandler thread id: {threading.get_ident()}")
-                print("Debug: from puttHandler thread before shot_q.put, expect another debug")
-                shot_q.put(putt)
-                gsp_stat.Shot_q_waiting = True
-                # It seems to hang in here.  I never see this.
-                print("Debug: From puttHandler thread entering send_shots with lock")
-                send_shots()
-                print("Debug:  From puttHandler thread after send_shot, all OK here")
-            print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
-            print(f"Debug: Left lock_q {threading.get_ident()}")
-            self.send_response_only(response_code) # how to quiet this console message?
-            self.end_headers()
-            self.wfile.write(str.encode(message))
-            voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
-            voice.runAndWait()
-            print(threading.enumerate())
-            threading.interrupt()         
-            return
-        else:
-            if not gsp_stat.Putter:
-                print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
-            response_code = 500
-            message = '{"result" : "ERROR"}'
-
-        # I'm not sure where this goes. send_response_only   
-        self.send_response_only(response_code) # how to quiet this console message?
-        self.end_headers()
-        self.wfile.write(str.encode(message))
+        try:
+          if length > 0 and gsp_stat.Putter:
+              response_code = 200
+              message = '{"result" : "OK"}'
+              res = json.loads(self.rfile.read(length))
+              print(res)
+          
+              putt = {
+                  "DeviceID": "ES16 Tour Plus",
+                  "Units": METRIC,
+                  "ShotNumber": 99,
+                  "APIversion": "1",
+                  "ShotDataOptions": {
+                      "ContainsBallData": True,
+                      "ContainsClubData": True,
+                      "LaunchMonitorIsReady": True,
+                      "LaunchMonitorBallDetected": True,
+                      "IsHeartBeat": False
+                  }
+              }
+              putt['BallData'] = {}
+              putt['BallData']['Speed'] = float(res['ballData']['BallSpeed'])
+              putt['BallData']['TotalSpin'] = float(res['ballData']['TotalSpin'])
+              putt['BallData']['SpinAxis'] = 0
+              putt['BallData']['HLA'] = float(res['ballData']['LaunchDirection'])
+              putt['BallData']['VLA'] = 0
+              putt['ClubData'] = {}
+              putt['ClubData']['Speed'] = float(res['ballData']['BallSpeed'])
+              putt['ClubData']['Path'] = '-'
+              putt['ClubData']['FaceToTarget'] = '-'
+              # Put a lock on the shotq update.
+              threading.enumerate()
+              with lock_q:
+                  print(f"Debug: lock_q: putthandler thread id: {threading.get_ident()}")
+                  print("Debug: from puttHandler thread before shot_q.put, expect another debug")
+                  shot_q.put(putt)
+                  gsp_stat.Shot_q_waiting = True
+                  # It seems to hang in here.  I never see this.
+                  print("Debug: From puttHandler thread entering send_shots with lock")
+                  send_shots()
+                  print("Debug:  From puttHandler thread after send_shot, all OK here")
+              print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
+              print(f"Debug: Left lock_q {threading.get_ident()}")
+              voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
+              voice.runAndWait()
+          else:
+              if not gsp_stat.Putter:
+                  print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
+              response_code = 500
+              message = '{"result" : "ERROR"}'
+              
+        except Exception as e:
+          response_code = 500
+          message = '{"result": format(e)}'
+          logging.warning(f'Putting Error in daemon: {format(e)}')
+        finally:
+          # I'm not sure where this goes. send_response_only   
+          self.send_response_only(response_code) # how to quiet this console message?
+          self.end_headers()
+          self.wfile.write(str.encode(json.dumps(hmessage)))
         return
-
+        
 """
 PuttServer.   This is an http server to process an Allexx type putting applicatoin.
 It runs a the server as a thread in the background which waits for data on the http

@@ -269,12 +269,14 @@ class PuttHandler(BaseHTTPRequestHandler):
                   gsp_stat.Shot_q_waiting = True
                   # It seems to hang in here.  I never see this.
                   print("Debug: From puttHandler thread entering send_shots with lock")
-#                  send_shots()
+                  send_shots()
                   print("Debug:  From puttHandler thread after send_shot, all OK here")
               print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
               print(f"Debug: Left lock_q {threading.get_ident()}")
-              voice.say("Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
+              voice.say(f"Nice Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
               voice.runAndWait()
+              if voice._inLoop:
+                  voice.endLoop()
           else:
               if not gsp_stat.Putter:
                   print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
@@ -629,10 +631,10 @@ def main():
         # sending swing data.   
         loop=True
         while (loop == True):
-          # Check for a shot_q data waiting from putt thread.   
-          if gsp_stat.Shot_q_waiting == True:
-            gsp_stat.Shot_q_waiting = False
-            send_shots()
+ # Not needed?         # Check for a shot_q data waiting from putt thread.   
+ #         if gsp_stat.Shot_q_waiting == True:
+ #           gsp_stat.Shot_q_waiting = False
+ #           send_shots()
           key = ""
           while (ser.inWaiting() == 0):
               # Check if a key has been pressed

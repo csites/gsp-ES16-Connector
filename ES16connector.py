@@ -228,6 +228,7 @@ class PuttHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         global gsp_stat
+        gsp_stat.Shot_q_waiting = False
         length = int(self.headers.get('content-length'))
         try:
           if length > 0 and gsp_stat.Putter:
@@ -268,7 +269,7 @@ class PuttHandler(BaseHTTPRequestHandler):
                   gsp_stat.Shot_q_waiting = True
                   # It seems to hang in here.  I never see this.
                   print("Debug: From puttHandler thread entering send_shots with lock")
-                  send_shots()
+#                  send_shots()
                   print("Debug:  From puttHandler thread after send_shot, all OK here")
               print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
               print(f"Debug: Left lock_q {threading.get_ident()}")
@@ -486,7 +487,7 @@ def send_shots():
             # Ready to send.  Clear the received flag and send it
             gsp_stat.ShotReceived = False
             gsp_stat.Ready = False
-    
+            gsp_stat.Shot_q_waiting = False
             # Send shot data to gspro. 
             print(json.dumps(message))
             send_shots_socket.sendall(json.dumps(message).encode())
@@ -628,10 +629,10 @@ def main():
         # sending swing data.   
         loop=True
         while (loop == True):
-#    Not needed?      # Check for a shot_q data waiting from putt thread.   
-#          if gsp_stat.Shot_q_waiting == True:
-#            gsp_stat.Shot_q_waiting = False
-#            send_shots()
+          # Check for a shot_q data waiting from putt thread.   
+          if gsp_stat.Shot_q_waiting == True:
+            gsp_stat.Shot_q_waiting = False
+            send_shots()
           key = ""
           while (ser.inWaiting() == 0):
               # Check if a key has been pressed

@@ -18,6 +18,8 @@ import msvcrt
 import pyttsx3
 import socket
 import serial
+# for debugging the serial reads and writes.
+from unittest.mock import patch
 import pywinauto
 import logging
 
@@ -73,7 +75,11 @@ if COM_PORT is None:   # Opps.  Forgot this option.  Thanks @YetG08
     COM_PORT = "COM7"
 if COM_BAUD is None:
     COM_BAUD = 15220
-        
+# Extra Debug does a lot more now.   It turns in mock serial and bypasses the GSPconnect checks.  
+# So we can now use the external gspro-emulator and the simulated putting_application  
+if EXTRA_DEBUG == None:
+    EXTRA_DEBUG = 0
+            
 # Setup the GSPro status variable
 class c_GSPRO_Status:
     Ready = True
@@ -271,12 +277,13 @@ class PuttHandler(BaseHTTPRequestHandler):
                   print("Debug: From puttHandler thread entering send_shots with lock")
                   send_shots()
                   print("Debug:  From puttHandler thread after send_shot, all OK here")
-              print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
-              print(f"Debug: Left lock_q {threading.get_ident()}")
-#              voice.say(f"Nice Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
-#              voice.runAndWait()
-#              if voice._inLoop:
-#                  voice.endLoop()
+                  print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
+                  print(f"Debug: Left lock_q {threading.get_ident()}")
+                  voice._queue.clear()
+                  voice.say(f"Nice Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
+                  voice.runAndWait()
+                  if voice._inLoop:
+                      voice.endLoop()
           else:
               if not gsp_stat.Putter:
                   print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
@@ -577,7 +584,7 @@ def main():
     try:
         # Check for the GSPro OpenAPI connector
         found = False
-        while not found:        
+        while not found and EXTRA_DEBUG==0:        
           for proc in psutil.process_iter():
               if 'GSPconnect.exe' == proc.name():
                   found = True
@@ -597,7 +604,7 @@ def main():
         
         print(f"Debug: Main thread before serial open and after putt_server start id: {threading.get_ident()}")
         found = False
-        while not found:
+        while not found and EXTRA_DEBUG==0:
           ser = serial.Serial(COM_PORT, COM_BAUD, timeout=1.5)
           # Check if the port is open
           if ser.isOpen():
@@ -606,8 +613,12 @@ def main():
           else:
             print_color_prefix(Color.RED, "ES16  ||", "Serial port did not open. Bluetooth setup? Is the ES16 turned on?")
             timer.sleep(5)
-         
-# Initialize the OpenAPI with heartbeat.  
+        # Mock serial port for debugging
+        if EXTRA_DEBUG:
+          with patch('serial.Serial') as mock_serial:
+            ser = mock_serial.return_value  # Use imitation serial object
+
+        # Initialize the OpenAPI with heartbeat.  
         last_sound=0 
         message = {
           "DeviceID": "ES16 Tour Plus",
@@ -848,13 +859,14 @@ def main():
         # Exit from loop. End the GSPconnector and closr the serial ports.  We are done.
         path = 'none'
         try:
-          for proc in psutil.process_iter():
-            if 'GSPconnect.exe' == proc.name():
-              proc = psutil.Process(proc.pid)
-              path=proc.exe()
-              proc.terminate()
-              print_color_prefix(Color.RED, "ES16 Connector ||", "Closed GSPconnect.exe.")
-              break
+          if EXTRA_DEBUG==0:
+            for proc in psutil.process_iter():
+              if 'GSPconnect.exe' == proc.name():
+                proc = psutil.Process(proc.pid)
+                path=proc.exe()
+                proc.terminate()
+                print_color_prefix(Color.RED, "ES16 Connector ||", "Closed GSPconnect.exe.")
+                break
         except Exception as e:
             print(f"Exception: Failed to close and relaunch GSPconnect.exe. {path} ({e})")
             

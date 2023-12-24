@@ -22,6 +22,7 @@ import serial
 from unittest.mock import patch
 import pywinauto
 import logging
+import traceback
 
 """
 Load settings.json and setup environment.  
@@ -78,8 +79,8 @@ if COM_BAUD is None:
 # Extra Debug does a lot more now.   It turns in mock serial and bypasses the GSPconnect checks.  
 # So we can now use the external gspro-emulator and the simulated putting_application  
 if EXTRA_DEBUG == None:
-    EXTRA_DEBUG = 0
-            
+    EXTRA_DEBUG = False
+              
 # Setup the GSPro status variable
 class c_GSPRO_Status:
     Ready = True
@@ -119,6 +120,10 @@ lock_q = threading.Lock()
 shot_q = Queue()
 # Also make voice global for the putt server 
 voice = None
+
+# For mock_serial debugging *EXTRA_DEBUG*
+mock_ESTP_string="ESTPPrt001CS054.0BS000.0CL4Hy0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000End".encode('UTF-8')
+mock_ES16_string="ES16Prt001CS067.0BS082.8CD000.0TD000.0LA12.8SP02259SF1.23CL4HySPA-10.3DIR-06.2LDA00.0AA-2.6DL17.0MH000.0SC+000.0ST+000.0CPTH-03.3CFAC-07.0SPL19.6HT00.00BV8.37VER179End".encode('UTF-8')
 
 # Key/value arrays for club selection routines.
 ES_gsp_Clubs="Drv DR, 3Wd W2, 3Wd W3, 4Wd W4, 5Wd W5, 7Wd W7, 7Wd W6, 2Hy H2, 3Hy H3, 4Hy H4, 5Hy H7, 5Hy H6, 5Hy H5, 2Ir I2, 2Ir I1, 3Ir I3, 4Ir I4, 5Ir I5, 6Ir I6,  7Ir I7, 8Ir I8, 9Ir I9, Ptw PW, Gpw GW, Sdw SW, Ldw LW, Chp LW, Ptt PT"
@@ -279,7 +284,7 @@ class PuttHandler(BaseHTTPRequestHandler):
                   print("Debug:  From puttHandler thread after send_shot, all OK here")
                   print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
                   print(f"Debug: Left lock_q {threading.get_ident()}")
-                  voice._queue.clear()
+#                  voice.queue.clear()
                   voice.say(f"Nice Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
                   voice.runAndWait()
                   if voice._inLoop:
@@ -300,6 +305,7 @@ class PuttHandler(BaseHTTPRequestHandler):
               self.send_response_only(response_code) # how to quiet this console message?
               self.end_headers()
               self.wfile.write(str.encode(json.dumps(message)))
+              self.finish()
         return
         
 """
@@ -315,8 +321,6 @@ class PuttServer(threading.Thread):
     def run(self):
         print_color_prefix(Color.GREEN, "Putting Server ||", "Starting. Use ball_tracking from https://github.com/alleexx/cam-putting-py")
         self.server = ThreadingHTTPServer(('0.0.0.0', 8888), PuttHandler)
-
- #       self.server.serve_forever()
         server_thread = threading.Thread(target = self.server.serve_forever, daemon = True)
         print(f"Debug: starting putt server thread id: {threading.get_ident()}")
         server_thread.start()
@@ -408,7 +412,7 @@ def process_gspro(resp):
                                     app_dialog.set_focus()
                             except Exception as e:
                                 print_color_prefix(Color.RED, "ES16 Connector ||", "Unable to find Putting View window")
-                                if EXTRA_DEBUG == 1:
+                                if EXTRA_DEBUG:
                                     print(f"Exception: {e}")
                                     for win in pywinauto.findwindows.find_elements():
                                         if 'PUTTING VIEW' in str(win).upper():
@@ -426,7 +430,7 @@ def process_gspro(resp):
                                     app_dialog.set_focus()
                             except Exception as e:
                                 print_color_prefix(Color.RED, "ES16 Connector ||", "Unable to find GSPRO window")
-                                if EXTRA_DEBUG == 1:
+                                if EXTRA_DEBUG:
                                     print(f"Exception: {e}")
                                     for win in pywinauto.findwindows.find_elements():
                                         if 'GSPRO' in str(win).upper():
@@ -541,7 +545,7 @@ def send_shots():
     except Exception as e:
 
         # if EXTRA_DEBUG:
-        print(f"send_shots: {e}")
+        print(f"EXCEPTION: send_shots error: {e}")
         print_color_prefix(Color.RED, "ES16 Connector ||", "No response from GSPRO. Retrying")
         if not send_shots.gspro_connection_notified:
             # If you hear a screem... this is it.
@@ -584,7 +588,7 @@ def main():
     try:
         # Check for the GSPro OpenAPI connector
         found = False
-        while not found and EXTRA_DEBUG==0:        
+        while not found and not EXTRA_DEBUG:        
           for proc in psutil.process_iter():
               if 'GSPconnect.exe' == proc.name():
                   found = True
@@ -604,7 +608,7 @@ def main():
         
         print(f"Debug: Main thread before serial open and after putt_server start id: {threading.get_ident()}")
         found = False
-        while not found and EXTRA_DEBUG==0:
+        while not found and not EXTRA_DEBUG:
           ser = serial.Serial(COM_PORT, COM_BAUD, timeout=1.5)
           # Check if the port is open
           if ser.isOpen():
@@ -642,10 +646,6 @@ def main():
         # sending swing data.   
         loop=True
         while (loop == True):
- # Not needed?         # Check for a shot_q data waiting from putt thread.   
- #         if gsp_stat.Shot_q_waiting == True:
- #           gsp_stat.Shot_q_waiting = False
- #           send_shots()
           key = ""
           while (ser.inWaiting() == 0):
               # Check if a key has been pressed
@@ -672,6 +672,8 @@ def main():
                     time.sleep(0.1)
           
                   #Read the data from the port
+                  if EXTRA_DEBUG:
+                      mock_serial.return_value.read=b"OK\n"
                   data = ser.read(3)
                   string_data = data.decode('utf-8')
                   print("Expect: "+string_data)
@@ -720,8 +722,12 @@ def main():
               # Nothing waiting on the serial port
               continue
               
-          # pass 1.   Read data + carriage return First data should be the ESTP line.
-          ESTPdata = ser.read(168)
+          if EXTRA_DEBUG:
+              ESTPdata=mock_ESTP_string
+          else:
+              # Real pass 1.   Read data + carriage return First data should be the ESTP line.
+              ESTPdata = ser.read(168)
+
           string_ESTPdata = ESTPdata.decode('utf-8')
           print(f"Pass1 data read: {len(ESTPdata)}")
           parsed_ESTPdata = process_input_string(string_ESTPdata)
@@ -779,9 +785,13 @@ def main():
           # pass 2. Need to check for the second part of the ES16 data set.
           time.sleep(0.75) # Just a little rest time
           ES16data=b""
-        
+         
           try:
-            ES16data = ser.read(168)
+              if EXTRA_DEBUG:
+                ES16data=mock_ES16_string
+              else:
+                ES16data = ser.read(168)
+
           except serial.SerialTimeoutException:
             voice.say("Timeout pass 2. Misread shot sequence")
             voice.runAndWait()
@@ -851,6 +861,11 @@ def main():
             continue
         
     except Exception as e:
+        traceback_obj = traceback.format_exc()  # Get the traceback information
+        print(traceback_obj)  # Print the full traceback
+        # Access the line number:
+        line_number = traceback_obj.splitlines()[-1].split()[-1]  # Extract line number from traceback
+        print("Error occurred on line:", line_number)
         print_color_prefix(Color.RED, "ES16 Connector ||","An error occurred in main before line 779: {}".format(e))
     except KeyboardInterrupt:
         print("Ctrl-C pressed")
@@ -859,7 +874,7 @@ def main():
         # Exit from loop. End the GSPconnector and closr the serial ports.  We are done.
         path = 'none'
         try:
-          if EXTRA_DEBUG==0:
+          if not EXTRA_DEBUG:
             for proc in psutil.process_iter():
               if 'GSPconnect.exe' == proc.name():
                 proc = psutil.Process(proc.pid)

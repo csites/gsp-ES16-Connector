@@ -6,7 +6,7 @@
   "COM_PORT" : "COM7",  // Windows serial port of ES16 LM.
   "COM_BAUD" : 115200, // Windows serial port baud rate.  Shouldn't matter.
   "METRIC" : "Yards", // (Leave as is) - If you want metric instead of imperial, change it in GSPro itself
-  "EXTRA_DEBUG" : "False", // Turn on Extra Debug
+  "EXTRA_DEBUG" : "True", // Turn on Extra Debug
   "AUDIBLE_READY" : "True",  // Enable Audio feedback
   "PUTTING_MODE" : 1,  // Turn on a putt server for an Allexx like putt application.
   "PUTTING_WINDOW_CONTROL" : 0  // 1 means we control the putt window pop up.  0 means leave it alone. 

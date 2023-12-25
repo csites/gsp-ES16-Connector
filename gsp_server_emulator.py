@@ -4,6 +4,13 @@ import msvcrt
 import pyttsx3
 import traceback
 
+"""
+GSP_SERVRT_EMULATOR:  This program can emulate the socket connectivity of the GSPConnector.exe program, which is the 
+openAPI connector for the GSPro Golf Simulator.  It does not validate any of the data sent to it, it just prints what
+it recieves and sends a CODE 200 reponse back, or it can send a CODE 201 Player data for a club change.   This is use
+full if your debugging a connector for the GSPro OpenAPI interface but either don't have the game available or to save
+time in debugging.  You can select a club using the keys '1234567890-=\p (see club_mapping below)
+"""
 club_mapping = {
     "`": ("Driver", "Drv","DR"),
     "1": ("3 Wood", "3Wd","W3"),
@@ -31,7 +38,7 @@ def handle_connection(client_socket):
   global voice
   try:  
     print("Enter Handle_connection loop")
-    while (1):
+    while (loop==True):
         print("In loop")
         # Check for a club selection
         key = msvcrt.getch()
@@ -47,7 +54,7 @@ def handle_connection(client_socket):
             # Get the corresponding string from the dictionary
             club = club_mapping[skey][2]
             message = {
-            	"Code": 201,
+            	"Code": "201",
             	"Message": "GSPro Player Information",
             	"Player": {
                 "DistanceToTarget": 50,
@@ -71,12 +78,8 @@ def handle_connection(client_socket):
 
         # prepare a standard 200 response
         response_dict = {
-            "Code": 200,
-            "Message": "OpenAPI simulator OK reply",
-            "Player": {
-                "DistanceToTarget": 100,
-                "Club": "Driver",
-            },
+            "Code": "200",
+            "Message": "OpenAPI simulator OK reply"
         }
  
         # Send response to client

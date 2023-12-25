@@ -50,4 +50,11 @@ python -m pip install pyttsx3 pyserial timeit
 Good luck.  If you need help or have questions, let me know how it goes on https://golfsimulatorforum.com in the Ernest Sports section.
 </p><p>
 Acknowlegements:  The ES16Connector borrows heavily from rowengb/GSPro-MLM2PRO-OCR-Connector project.  Mainly it serves as a guide to build the interface between a stock set of LM measurements and the GSPro OpenAPI.  Because the Ernest Sports Tour Plus and friends have putting built-in, the putting code has been removed as well as well.   
+</p><p>
+<h3>Future feature</h3>
+</p><p>
+Currently, I'm adding an Allexx-style putt server to the ES16connector.py.   This is a fix to overcome an issue with the new ES Tour Plus V2 putting.  Something changed in the V2 upgrade and it seems that putting relies heavily on the acoustic impact sensor which due to noise filtering, will not read short putts in the < 8ft range!  That is a game-stopper in tournament play. So as a work-around, I'm adding the Allexx putt server code to optionally handle putting from an external source.  Unfortunately, there seems to be a lot of intricacies to handle the threading of the Allexx-style putt server so considerable changes have be made to error capturing and reporting.  To make it even more challenging, I added mock-serial handling to allow the code to run without an active ES16.  This is to allow further debugging.  So, I now have introduced gspro-server-emulator.py to simulate the gsPRO's openAPI connector.  It just takes in the data and prints it to the screen.   It also allows you to change the club using the '1234567890-=\p keys and send the openAPI 201 player Json to change clubs.   If you turn on the EXTRA_DEBUG, you will want to run this first.   Next in the debugging of the Allexx-Style Putt server you can check that the putt-server is alive in a thread by simply using curl or opening a browser to HTTP://127.0.0.1:8888.  It will report the current club selected and whether putting is active.  To simulate a small 5mph putt, I have a small program that you can run in python called 'putt_server_test.py' which does a one-shot putt for testing the Allexx-style-putt-server functionallity.
+</p>
+ 
+</p>
 </p>

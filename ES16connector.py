@@ -79,7 +79,7 @@ if COM_BAUD is None:
 # Extra Debug does a lot more now.   It turns in mock serial and bypasses the GSPconnect checks.  
 # So we can now use the external gspro-emulator and the simulated putting_application  
 if EXTRA_DEBUG == None:
-    EXTRA_DEBUG = False
+    EXTRA_DEBUG = 0
               
 # Setup the GSPro status variable
 class c_GSPRO_Status:
@@ -478,7 +478,8 @@ def send_shots():
             message = shot_q.get_nowait()
             print(message)
         except Exception as e:
-            # No shot to send
+            # Should be no-data in shot_queue, so just return
+            print(f"EXCEPTION: send_shots get_shotq error: {e}")
             return
         if message['ShotNumber'] != 0:
             ball_speed = message['BallData']['Speed']
@@ -500,7 +501,7 @@ def send_shots():
             # Ready to send.  Clear the received flag and send it
             gsp_stat.ShotReceived = False
             gsp_stat.Ready = False
-            gsp_stat.Shot_q_waiting = False
+
             # Send shot data to gspro. 
             print(json.dumps(message))
             send_shots_socket.sendall(json.dumps(message).encode())
@@ -543,9 +544,12 @@ def send_shots():
             raise Exception
  
     except Exception as e:
+        traceback_obj = traceback.format_exc()  # Get the traceback information
+        print(traceback_obj)  # Print the full traceback
 
         # if EXTRA_DEBUG:
         print(f"EXCEPTION: send_shots error: {e}")
+        
         print_color_prefix(Color.RED, "ES16 Connector ||", "No response from GSPRO. Retrying")
         if not send_shots.gspro_connection_notified:
             # If you hear a screem... this is it.

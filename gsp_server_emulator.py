@@ -32,12 +32,13 @@ club_mapping = {
 HOST = 'localhost'  # Change this to your desired host
 PORT = 921  # Change this to your desired port
 voice=""
-loop=True
+
 
 def handle_connection(client_socket):
   global voice
   try:  
     print("Enter Handle_connection loop")
+    loop=True
     while (loop==True):
         print("In loop")
         # Check for a club selection

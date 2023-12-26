@@ -120,6 +120,7 @@ lock_q = threading.Lock()
 shot_q = Queue()
 # Also make voice global for the putt server 
 voice = None
+BUFF_SIZE=1024
 
 # For mock_serial debugging *EXTRA_DEBUG*
 mock_ESTP_string="ESTPPrt001CS054.0BS000.0CL4Hy0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000End".encode('UTF-8')
@@ -450,7 +451,7 @@ def send_shots():
     global gsp_stat
     global send_shots_create_socket
     global send_shots_socket
-    BUFF_SIZE=1024
+
     POLL_TIME=10   # seconds to wait for shot ack
     
     try:

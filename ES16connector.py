@@ -694,7 +694,7 @@ def main():
 
                   data = bytes(0)
                   while read_ready:
-                      data = data + send_shots_socket.recv(BUF_SIZE) # Get GSPro data.
+                      data = data + send_shots_socket.recv(BUFF_SIZE) # Get GSPro data.
                       read_ready, _, _ = select.select([send_shots_socket], [], [], 0)
                       print(f"Read_ready: {read_ready}")
                   if len(data) > 0 :

@@ -693,13 +693,14 @@ def main():
 
                   data = bytes(0)
                   while read_ready:
-                      data = data + send_shots_socket.recv(1024) # Get GSPro data.
+                      data = data + send_shots_socket.recv(BUF_SIZE) # Get GSPro data.
                       read_ready, _, _ = select.select([send_shots_socket], [], [], 0)
+                      print(f"Read_ready: {read_ready}")
                   if len(data) > 0 :
                       print(f"rec'd when idle:\n{data}")
                       process_gspro(data) # don't need return value at this stage But do processes
-                      # Look for the club changes we need to send that that to ES16.
-
+                      # Look for the club changes 201 we need to send that that to ES16.
+                  
           # If we are putting with Alexx's putt server We don't need to read the serial port
           # So just flush the serial port and continue           
           if PUTTING_MODE == 1:

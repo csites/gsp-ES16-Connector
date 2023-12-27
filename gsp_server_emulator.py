@@ -52,6 +52,8 @@ def handle_connection(client_socket):
             print("Club Selected,"+club_mapping[skey][0])
             voice.say("Club Selected,"+club_mapping[skey][0])
             voice.runAndWait()
+            if voice._inLoop:
+                voice.endLoop()
             # Get the corresponding string from the dictionary
             club = club_mapping[skey][2]
             message = {
@@ -71,6 +73,7 @@ def handle_connection(client_socket):
           
         # Receive data from client
         data = client_socket.recv(1024).decode()
+        print(f"DATA: {len(data)}")
         if not data:
             continue
 
@@ -82,7 +85,7 @@ def handle_connection(client_socket):
             "Code": "200",
             "Message": "OpenAPI simulator OK reply"
         }
- 
+        print("Sending 200 message")
         # Send response to client
         response_data = json.dumps(response_dict).encode()
         client_socket.sendall(response_data)

@@ -23,6 +23,7 @@ from unittest.mock import patch
 import pywinauto
 import logging
 import traceback
+from subprocess import call
 
 """
 Load settings.json and setup environment.  
@@ -102,7 +103,17 @@ def create_socket_connection(host, port):
     sock.connect(server_address)
     sock.settimeout(5)
     return sock
-    
+
+# Because of the threading used for the putt server, and that pytxts3 module is not thread safe, 
+# We use an external program for speach created from speak.py.  In this case the program 'speak.exe'.
+# I'm calling this out of the 'dist' directory.
+class Voice:
+    def __init__(self):
+        self.speak_path = os.path.join(os.path.dirname(__file__), "dist", "speak.exe")  # Relative path
+
+    def say(self, text):
+        call([self.speak_path, text])
+   
 # Color pretty print    
 class Color:
     RESET = '\033[0m'
@@ -285,11 +296,7 @@ class PuttHandler(BaseHTTPRequestHandler):
                   print("Debug:  From puttHandler thread after send_shot, all OK here")
                   print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
                   print(f"Debug: Left lock_q {threading.get_ident()}")
-#                  voice.queue.clear()
                   voice.say(f"Nice Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
-                  voice.runAndWait()
-                  if voice._inLoop:
-                      voice.endLoop()
           else:
               if not gsp_stat.Putter:
                   print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
@@ -365,8 +372,6 @@ def process_gspro(resp):
                 # Send date to Club change to ES16.
                 if (gsp_stat.Club != gsp_stat.Club_previous):
                       voice.say("Changing clubs to "+gsclub_2voice_mapping[gsp_stat.Club][0]+".")
-                      voice.runAndWait()
-
                       # If we want to check for an external putter application
                       # We might want to do it here, or set a trigger for it  
      
@@ -541,8 +546,9 @@ def send_shots():
 
         if not got_ack:
             print("debug: no ack")
-            print(message)
-            raise Exception
+            # print(message)
+            return
+            # raise Exception
  
     except Exception as e:
         traceback_obj = traceback.format_exc()  # Get the traceback information
@@ -605,11 +611,8 @@ def main():
         # Check for the GSPro OpenAPI connector
         print_color_prefix(Color.GREEN, "GSPro ||", "Connecting to OpenConnect API ({}:{})...".format(HOST, PORT))
         
-        voice=pyttsx3.init() # Initialize text to speech
-        voice.setProperty('rate',265)
-        voice.setProperty('voice', 'Microsoft Mary')
+        voice=Voice() # Initialize text to speech
         voice.say("E S 16 Connector is Ready!")
-        voice.runAndWait()
         
         print(f"Debug: Main thread before serial open and after putt_server start id: {threading.get_ident()}")
         found = False
@@ -663,7 +666,6 @@ def main():
                 if skey in club_mapping:
         
                   voice.say("Club Selected,"+club_mapping[skey][0])
-                  voice.runAndWait()
                   # Get the corresponding string from the dictionary
                   string = club_mapping[skey][1]
                   # Construct the message string
@@ -781,8 +783,6 @@ def main():
               # We need to go-ahead and send the shot data for late data events like this.
             print(f"pass1. Parsed ESTPdata: {parsed_ESTPdata}")
             voice.say("Correction!  Club Speed, "+parsed_ESTPdata["CS"]+".  Ball Speed, "+parsed_ESTPdata["BS"])
-            voice.runAndWait()
-
             ser.flush()
             continue
         
@@ -800,7 +800,6 @@ def main():
 
           except serial.SerialTimeoutException:
             voice.say("Timeout pass 2. Misread shot sequence")
-            voice.runAndWait()
             ser.flush()
             continue
  
@@ -808,7 +807,6 @@ def main():
           ES16string = ES16data.decode('utf-8')
           if (len(ES16string) == 0):
               voice.say("Mis red shot sequence")
-              voice.runAndWait()
               ser.flush()
               continue
            
@@ -857,12 +855,10 @@ def main():
             send_shots()
             ser.flush()
             voice.say("Club Speed, "+Pdata["CS"]+".  Ball Speed, "+Pdata["BS"])
-            voice.runAndWait()
             continue
           else: 
             print(f"I'm confused while parsing: {ES16string}")
             voice.say("Miss red shot sequence")
-            voice.runAndWait() 
             ser.flush()
             continue
         
@@ -894,7 +890,7 @@ def main():
         if send_shots_socket:
             send_shots_socket.close()
             print_color_prefix(Color.RED, "ES16 Connector ||", "Socket to OpenAPI connection closed...")
-        voice.stop()    
+
         ser.close()
         print("Quit!")
 

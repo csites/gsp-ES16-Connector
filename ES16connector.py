@@ -400,7 +400,7 @@ def process_gspro(resp):
                 if gsp_stat.Club == "PT" and gsp_stat.Putter == False:
                     gsp_stat.Putter = True
                 if gsp_stat.Club != "PT" and gsp_stat.Putter == True:
-                    fsp_stat.Putter = False
+                    gsp_stat.Putter = False
                 print(f"Checking club for putter: {gsp_stat.Club} gsp_stat.Putter: {gsp_stat.Putter}")                 
                 # Check to see how we handle the putting window do we auto popup the putt window? 
                 if PUTTING_MODE != 0 and  PUTTING_WINDOW_CONTROL != 0:

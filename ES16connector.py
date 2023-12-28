@@ -15,7 +15,7 @@ import psutil
 from pathlib import Path
 import chime
 import msvcrt
-import pyttsx3
+# import pyttsx3
 import socket
 import serial
 # for debugging the serial reads and writes.
@@ -90,8 +90,8 @@ class c_GSPRO_Status:
     Putter = True
     DistToPin = 200
     RollingOut = False
-    Club = "PT"
-    Club_previous = "None"
+    Club = "DR"
+    Club_previous = "PT"
     Shot_q_waiting = False
     
 gsp_stat = c_GSPRO_Status()
@@ -140,6 +140,7 @@ mock_ES16_string="ES16Prt001CS067.0BS082.8CD000.0TD000.0LA12.8SP02259SF1.23CL4Hy
 # Key/value arrays for club selection routines.
 ES_gsp_Clubs="Drv DR, 3Wd W2, 3Wd W3, 4Wd W4, 5Wd W5, 7Wd W7, 7Wd W6, 2Hy H2, 3Hy H3, 4Hy H4, 5Hy H7, 5Hy H6, 5Hy H5, 2Ir I2, 2Ir I1, 3Ir I3, 4Ir I4, 5Ir I5, 6Ir I6,  7Ir I7, 8Ir I8, 9Ir I9, Ptw PW, Gpw GW, Sdw SW, Ldw LW, Chp LW, Ptt PT"
 
+# For keyboard to club mapping
 club_mapping = {
     "`": ("Driver", "Drv","DR"),
     "1": ("3 Wood", "3Wd","W3"),
@@ -158,6 +159,7 @@ club_mapping = {
     "p": ("Putter", "Ptt","PT"),
 }
 
+# For gspro '201' to club mapping 
 gsclub_2voice_mapping = {
     "DR": ("Driver", "Drv"),
     "W3": ("3 Wood", "3Wd"),
@@ -235,14 +237,11 @@ giving the option to use Alexx's putting code (or my own fisheye code) is a good
 So this is pulled right out of the old code.
 """
 class PuttHandler(BaseHTTPRequestHandler):
+     
     def do_GET(self):
         global gsp_stat
         self.send_response(200)
         self.end_headers()
-#        message =  threading.currentThread().getName()
-#        self.wfile.write(b"Putt Server check: Thread name: ")
-#        self.wfile.write(message)
-#        self.wfile.write('\n')
         message = f"Putter selected: {gsp_stat.Club} is it putter: {gsp_stat.Putter}".encode()
         print(message)
         self.wfile.write(message)
@@ -290,13 +289,13 @@ class PuttHandler(BaseHTTPRequestHandler):
                   print("Debug: from puttHandler thread before shot_q.put, expect another debug")
                   shot_q.put(putt)
                   gsp_stat.Shot_q_waiting = True
-                  # It seems to hang in here.  I never see this.
-                  print("Debug: From puttHandler thread entering send_shots with lock")
-                  send_shots()
-                  print("Debug:  From puttHandler thread after send_shot, all OK here")
-                  print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
-                  print(f"Debug: Left lock_q {threading.get_ident()}")
-                  voice.say(f"Nice Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
+              # It seems to hang in here.  I never see this.
+              print("Debug: From puttHandler thread entering send_shots with lock")
+              send_shots()
+              print("Debug:  From puttHandler thread after send_shot, all OK here")
+              print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
+              print(f"Debug: Left lock_q {threading.get_ident()}")
+              voice.say(f"Nice Putt! Ball speed {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
           else:
               if not gsp_stat.Putter:
                   print_color_prefix(Color.RED, "Putting Server ||", "Ignoring detected putt, since putter isn't selected")
@@ -357,18 +356,21 @@ def process_gspro(resp):
         if len(this_json) > 0 :
             print(this_json)
             msg = json.loads(this_json)
+
             if msg['Code'] == 200 :
                 gsp_stat.ShotReceived = True
                 code_200_found = True
+                break
             if msg['Code'] == 201:
                 gsp_stat.Ready = True
                 gsp_stat.ReadyTime = time.perf_counter()
                 gsp_stat.RollingOut = True
                 gsp_stat.DistToPin = msg['Player']['DistanceToTarget']
                 gsp_stat.Club = msg['Player']['Club']
+                code_200_found = True
 
-                # We beed to send the CLub selected to ES16.  But if its a wedge, we need to look at Distance to Target.  If That is < 30 yards, we want to 
-                # to Send club change to 'Chip' mode for pure optical
+                # We need to send the CLub selected to ES16.  But if its a wedge, we need to look at Distance to Target.  
+                # If That is < 40 yards, we want to send club change to 'Chip' mode for pure optical tracking.
                 # Send date to Club change to ES16.
                 if (gsp_stat.Club != gsp_stat.Club_previous):
                       voice.say("Changing clubs to "+gsclub_2voice_mapping[gsp_stat.Club][0]+".")
@@ -394,14 +396,12 @@ def process_gspro(resp):
                       string_data = data.decode('utf-8')
                       print("Expect: "+string_data)
                       ser.flush()
-                # Check for putter
-                logging.warning(threading.enumerate())
 
-                if gsp_stat.Club == "PT" and gsp_stat.Putter == False:
-                    gsp_stat.Putter = True
-                if gsp_stat.Club != "PT" and gsp_stat.Putter == True:
-                    gsp_stat.Putter = False
-                print(f"Checking club for putter: {gsp_stat.Club} gsp_stat.Putter: {gsp_stat.Putter}")                 
+                      if gsp_stat.Club == "PT" and gsp_stat.Putter == False:
+                        gsp_stat.Putter = True
+                      if gsp_stat.Club != "PT" and gsp_stat.Putter == True:
+                        gsp_stat.Putter = False
+ 
                 # Check to see how we handle the putting window do we auto popup the putt window? 
                 if PUTTING_MODE != 0 and  PUTTING_WINDOW_CONTROL != 0:
                     if gsp_stat.Club == "PT":
@@ -441,7 +441,8 @@ def process_gspro(resp):
                                     for win in pywinauto.findwindows.find_elements():
                                         if 'GSPRO' in str(win).upper():
                                             print(str(win))
-                gsp_stat.Club_previous = gsp_stat.Club                                    
+                gsp_stat.Club_previous = gsp_stat.Club  
+            break                                      
     print("Exit process_gspro()")                                            
     return code_200_found
 
@@ -460,6 +461,10 @@ def send_shots():
     POLL_TIME=10   # seconds to wait for shot ack
     
     try:
+
+      # Prevent two threads reading the same socket. So lock here.
+      with lock_q:
+    
         if send_shots_create_socket:
             send_shots_socket = create_socket_connection(HOST, PORT)
             send_shots_create_socket = False
@@ -520,7 +525,7 @@ def send_shots():
             # When ShotNumber == 0 send the heartbeat message
             send_shots_socket.sendall(json.dumps(message).encode())
             # Apperantly the heartbeat does not reply, so just return.
-            return
+            return    
             
         # Poll politely until there is a message received on the socket
         stop_time = time.time() + POLL_TIME # wait for ack
@@ -547,9 +552,10 @@ def send_shots():
         if not got_ack:
             print("debug: no ack")
             # print(message)
-            return
-            # raise Exception
- 
+
+      return # End of the lock_q.
+        
+    # Catch the wierd and rare errors.
     except Exception as e:
         traceback_obj = traceback.format_exc()  # Get the traceback information
         print(traceback_obj)  # Print the full traceback

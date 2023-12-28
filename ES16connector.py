@@ -311,7 +311,8 @@ class PuttHandler(BaseHTTPRequestHandler):
               # I'm not sure where this goes. send_response_only   
               self.send_response_only(response_code) # how to quiet this console message?
               self.end_headers()
-              self.wfile.write(str.encode(json.dumps(message)))
+              # Humm do I really want to str.encode this message?
+              self.wfile.write(json.dumps(message))
               self.finish()
         return
         

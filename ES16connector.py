@@ -311,9 +311,7 @@ class PuttHandler(BaseHTTPRequestHandler):
               message = '{"result": "{format(e)}"}'
               logging.warning(f'Putting Error in daemon: {format(e)}')
         finally:
-              # Quiet console message (if desired):
-              with contextlib.redirect_stdout(None):
-                    self.send_response_only(response_code)
+              self.send_response_only(response_code)
               self.end_headers()
               response_data = json.dumps(message).encode()
               self.wfile.write(response_data)

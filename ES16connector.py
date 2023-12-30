@@ -54,6 +54,7 @@ PORT = settings.get("PORT")
 # METRIC = "Metric" or "Yards"
 METRIC = settings.get("METRIC")
 EXTRA_DEBUG = settings.get("EXTRA_DEBUG")
+SERIAL_DEBUG = settings.get("SERIAL_DEBUG")
 COM_PORT = settings.get("COM_PORT")
 COM_BAUD = settings.get("COM_BAUD")
 # Audible Read signal.
@@ -81,7 +82,9 @@ if COM_BAUD is None:
 # So we can now use the external gspro-emulator and the simulated putting_application  
 if EXTRA_DEBUG == None:
     EXTRA_DEBUG = 0
-              
+if SERIAL_DEBUG == None:
+    SERIAL_DEBUG = 0
+    
 # Setup the GSPro status variable
 class c_GSPRO_Status:
     Ready = True
@@ -308,11 +311,12 @@ class PuttHandler(BaseHTTPRequestHandler):
               message = '{"result": "{format(e)}"}'
               logging.warning(f'Putting Error in daemon: {format(e)}')
         finally:
-              # I'm not sure where this goes. send_response_only   
-              self.send_response_only(response_code) # how to quiet this console message?
+              # Quiet console message (if desired):
+              with contextlib.redirect_stdout(None):
+                    self.send_response_only(response_code)
               self.end_headers()
-              # Humm do I really want to str.encode this message?
-              self.wfile.write(json.dumps(message).encode('utf-8'))
+              response_data = json.dumps(message).encode()
+              self.wfile.write(response_data)
               self.finish()
         return
         
@@ -624,7 +628,7 @@ def main():
         print(f"Debug: Main thread before serial open and after putt_server start id: {threading.get_ident()}")
         found = False
         # Mock serial port for debugging
-        if EXTRA_DEBUG:
+        if SERIAL_DEBUG:
           with patch('serial.Serial') as mock_serial:
             ser = mock_serial.return_value  # Use imitation serial object
             if ser.isOpen():
@@ -695,7 +699,7 @@ def main():
                     time.sleep(0.1)
           
                   #Read the data from the port
-                  if EXTRA_DEBUG:
+                  if SERIAL_DEBUG:
                       mock_serial.return_value.read=b"OK\n"
                   data = ser.read(3)
                   string_data = data.decode('utf-8')
@@ -747,7 +751,7 @@ def main():
               # Nothing waiting on the serial port
               continue
               
-          if EXTRA_DEBUG:
+          if SERIAL_DEBUG:
               ESTPdata=mock_ESTP_string
           else:
               # Real pass 1.   Read data + carriage return First data should be the ESTP line.

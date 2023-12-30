@@ -291,7 +291,7 @@ class PuttHandler(BaseHTTPRequestHandler):
                   gsp_stat.Shot_q_waiting = True
               # It seems to hang in here.  I never see this.
               print("Debug: From puttHandler thread entering send_shots with lock")
-              send_shots()
+              # send_shots()
               print("Debug:  From puttHandler thread after send_shot, all OK here")
               print(f"Putt! Ball speed. {putt['BallData']['Speed']}, H L A {putt['BallData']['HLA']} Degrees.")
               print(f"Debug: Left lock_q {threading.get_ident()}")
@@ -553,7 +553,7 @@ def send_shots():
         if not got_ack:
             print("debug: no ack")
             # print(message)
-
+      
       return # End of the lock_q.
         
     # Catch the wierd and rare errors.
@@ -623,20 +623,24 @@ def main():
         
         print(f"Debug: Main thread before serial open and after putt_server start id: {threading.get_ident()}")
         found = False
-        while not found and not EXTRA_DEBUG:
-          ser = serial.Serial(COM_PORT, COM_BAUD, timeout=1.5)
-          # Check if the port is open
-          if ser.isOpen():
-            print_color_prefix(Color.GREEN, "ES16  ||", "Connecting to ES16 serial port: ({}:{})...".format(COM_PORT, COM_BAUD))
-            found = True
-          else:
-            print_color_prefix(Color.RED, "ES16  ||", "Serial port did not open. Bluetooth setup? Is the ES16 turned on?")
-            timer.sleep(5)
         # Mock serial port for debugging
         if EXTRA_DEBUG:
           with patch('serial.Serial') as mock_serial:
             ser = mock_serial.return_value  # Use imitation serial object
-
+            if ser.isOpen():
+                print_color_prefix(Color.GREEN, "ES16  ||", "Connected to ES16 via MOCK SERIAL PORT. DEBUG ON")    
+        else:        
+            # Wait until ES16 serial port opens
+            while not found:
+                ser = serial.Serial(COM_PORT, COM_BAUD, timeout=1.5)
+                # Check if the port is open
+                if ser.isOpen():
+                    print_color_prefix(Color.GREEN, "ES16  ||", "Connecting to ES16 serial port: ({}:{})...".format(COM_PORT, COM_BAUD))
+                    found = True
+                else:
+                    print_color_prefix(Color.RED, "ES16  ||", "Serial port did not open. Bluetooth setup? Is the ES16 turned on?")
+                    timer.sleep(5)
+    
         # Initialize the OpenAPI with heartbeat.  
         last_sound=0 
         message = {
@@ -661,6 +665,11 @@ def main():
         # sending swing data.   
         loop=True
         while (loop == True):
+          # Look for other thread loading the shotq.
+          if gsp_stat.Shot_q_waiting:
+            send_shots()
+            gsp_stat.Shot_q_waiting=False
+            
           key = ""
           while (ser.inWaiting() == 0):
               # Check if a key has been pressed
@@ -697,19 +706,20 @@ def main():
                   print("You pressed key: ",skey)
 
               # Check the socket for a 201 message.
-              if send_shots_create_socket == False:
-                  #  Check if we recevied any unsollicited messages from GSPRO (e.g. change of club)
-                  read_ready, _, _ = select.select([send_shots_socket], [], [], 0)
-
-                  data = bytes(0)
-                  while read_ready:
-                      data = data + send_shots_socket.recv(BUFF_SIZE) # Get GSPro data.
+              with lock_q:  # Not sure this is needed in the main loop.
+                  if send_shots_create_socket == False:
+                      #  Check if we recevied any unsollicited messages from GSPRO (e.g. change of club)
                       read_ready, _, _ = select.select([send_shots_socket], [], [], 0)
-                      print(f"Read_ready: {read_ready}")
-                  if len(data) > 0 :
-                      print(f"rec'd when idle:\n{data}")
-                      process_gspro(data) # don't need return value at this stage But do processes
-                      # Look for the club changes 201 we need to send that that to ES16.
+
+                      data = bytes(0)
+                      while read_ready:
+                          data = data + send_shots_socket.recv(BUFF_SIZE) # Get GSPro data.
+                          read_ready, _, _ = select.select([send_shots_socket], [], [], 0)
+                          print(f"Read_ready: {read_ready}")
+                      if len(data) > 0 :
+                          print(f"rec'd when idle:\n{data}")
+                          process_gspro(data) # don't need return value at this stage But do processes
+                          # Look for the club changes 201 we need to send that that to ES16.
                   
           # If we are putting with Alexx's putt server We don't need to read the serial port
           # So just flush the serial port and continue           

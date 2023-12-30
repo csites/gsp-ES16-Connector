@@ -315,7 +315,7 @@ class PuttHandler(BaseHTTPRequestHandler):
               self.end_headers()
               response_data = json.dumps(message).encode()
               self.wfile.write(response_data)
-              self.finish()
+              # self.finish()
         return
         
 """
